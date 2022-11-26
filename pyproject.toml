@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "touch-sdk"
+version = "0.0.1"
+description = "Port 6 Touch SDK"
+license = "ISC"
+authors = [
+  { name="Port 6", email="developer@port6.io" },
+]
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["bluetooth"]
+
+[project.urls]
+"Homepage" = "https://github.com/port6io/touch-sdk-py#readme"
+"Bug Tracker" = "https://github.com/port6io/touch-sdk-py/issues"

@@ -65,15 +65,6 @@ class WatchManager:
             except BleakError:
                 pass
 
-            if not 'gx5j' in name.lower():
-                return
-            # await scanner.stop()
-            try:
-                pass
-                # await do_connect(device)
-            except:
-                pass
-    
     async def do_connect(self, device):
         client = BleakClient(device)
         await client.connect()
@@ -94,10 +85,8 @@ class WatchManager:
         await client.start_notify(MOTION_UUID, wrapper(self.on_motion))
     
     async def disconnect_non_last(self):
-        print('Connected to', self.last_device)
         await self.scanner.stop()
         for device in self.found_devices:
-            # print(device, self.last_device)
             if device != self.last_device:
                 client = BleakClient(device)
                 await client.disconnect()

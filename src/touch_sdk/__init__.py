@@ -76,13 +76,13 @@ class WatchManager:
                 await function(_, data)
             return wrapped
 
-        await client.start_notify(GYRO_UUID, wrapper(self.on_gyro))
-        await client.start_notify(GRAV_UUID, wrapper(self.on_grav))
-        await client.start_notify(ACC_UUID, wrapper(self.on_acc))
-        await client.start_notify(QUAT_UUID, wrapper(self.on_quat))
-        await client.start_notify(GESTURE_UUID, wrapper(self.on_gesture))
-        await client.start_notify(TOUCH_UUID, wrapper(self.on_touch))
-        await client.start_notify(MOTION_UUID, wrapper(self.on_motion))
+        await client.start_notify(GYRO_UUID, wrapper(self.raw_on_gyro))
+        await client.start_notify(ACC_UUID, wrapper(self.raw_on_acc))
+        await client.start_notify(GRAV_UUID, wrapper(self.raw_on_grav))
+        await client.start_notify(QUAT_UUID, wrapper(self.raw_on_quat))
+        await client.start_notify(GESTURE_UUID, wrapper(self.raw_on_gesture))
+        await client.start_notify(TOUCH_UUID, wrapper(self.raw_on_touch))
+        await client.start_notify(MOTION_UUID, wrapper(self.raw_on_motion))
     
     async def disconnect_non_last(self):
         await self.scanner.stop()
@@ -92,36 +92,78 @@ class WatchManager:
                 await client.disconnect()
 
     
-    async def on_gyro(self, _, data):
+    async def raw_on_gyro(self, _, data):
         gyro = struct.unpack('>3f', data)
-        print(f"angular velocity: {gyro}")
+        self.on_gyro(gyro)
+    
+    def on_gyro(self, angularVelocity):
+        pass
 
-
-    async def on_acc(self, _, data):
+    async def raw_on_acc(self, _, data):
         acc = struct.unpack('>3f', data)
-        # print(f"acceleration: {acc}")
+        self.on_acc(acc)
 
-    async def on_grav(self, _, data):
+    def on_acc(self, acceleration):
+        pass
+
+    async def raw_on_grav(self, _, data):
         grav = struct.unpack('>3f', data)
-        # print(f"gravity: {grav}")
+        self.on_grav(grav)
 
-    async def on_quat(self, _, data):
+    def on_grav(self, gravityVector):
+        pass
+
+    async def raw_on_quat(self, _, data):
         quat = struct.unpack('>4f', data[:16])
-        # print(f"orientation: {quat}")
+        self.on_quat(quat)
 
-    async def on_gesture(self, _, data):
+    def on_quat(self, quaternion):
+        pass
+
+    async def raw_on_gesture(self, _, data):
         gesture = struct.unpack('>b', data)
-        print(f"gesture: {GESTURES[gesture[0]]}")
+        if GESTURES[gesture[0]] == 'Tap':
+            self.on_tap()
+    
+    def on_tap(self):
+        pass
 
-    async def on_touch(self, _, data):
+    async def raw_on_touch(self, _, data):
         touch = struct.unpack('>b2f', data)
-        print(f"touch: {TOUCH_TYPES[touch[0]]}, x: {touch[1]}, y: {touch[2]}")
+        touch_type = TOUCH_TYPES[touch[0]]
+        x = touch[1]
+        y = touch[2]
 
-    async def on_motion(self, _, data):
+        if touch_type == 'Down':
+            self.on_touch_down(x, y)
+        if touch_type == 'Up':
+            self.on_touch_up(x, y)
+        if touch_type == 'Move':
+            self.on_touch_move(x, y)
+        
+    def on_touch_down(self, x, y):
+        pass
+
+    def on_touch_up(self, x, y):
+        pass
+
+    def on_touch_move(self, x, y):
+        pass
+
+    async def raw_on_motion(self, _, data):
         motion = struct.unpack('>2b', data)
-        print(f"motion: {MOTION_TYPES[motion[0]]}", end="")
-        print(f" {ROTARY_INFOS[motion[1]]}" if motion[0] == 0 else "")
+        motion_type = MOTION_TYPES[motion[0]]
+        if motion_type == 'Rotary':
+            value = 1 - 2*motion[1] # 0,1 -> +1,-1
+            self.on_rotary(value)
+        if motion_type == 'Back button':
+            self.on_back_button()
+    
+    def on_rotary(self, direction):
+        pass
 
+    def on_back_button(self):
+        pass
 
 
 if __name__ == "__main__":

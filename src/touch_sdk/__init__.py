@@ -66,14 +66,13 @@ class WatchManager:
 
             print(f"Found {name}")
             try:
-                await self._do_connect(device)
+                await self._do_connect(client, device)
             except asyncio.exceptions.CancelledError:
                 print("connection cancelled from", name)
             except BleakError:
                 pass
 
-    async def _do_connect(self, device):
-        client = BleakClient(device)
+    async def _do_connect(self, client, device):
         await client.connect()
 
         def wrapper(function):

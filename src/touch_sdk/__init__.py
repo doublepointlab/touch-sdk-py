@@ -40,13 +40,13 @@ class WatchManager:
 
     async def run(self):
         self.scanner = BleakScanner(
-            self.detection_callback, service_uuids=[SERVICE_UUID]
+            self._detection_callback, service_uuids=[SERVICE_UUID]
         )
         await self.scanner.start()
         while True:
             await asyncio.sleep(1)
 
-    async def detection_callback(self, device, advertisement_data):
+    async def _detection_callback(self, device, advertisement_data):
         name = (
             advertisement_data.manufacturer_data.get(0xFFFF, bytearray()).decode(
                 "utf-8"
@@ -66,68 +66,68 @@ class WatchManager:
 
             print(f"Found {name}")
             try:
-                await self.do_connect(device)
+                await self._do_connect(device)
             except asyncio.exceptions.CancelledError:
                 print("connection cancelled from", name)
             except BleakError:
                 pass
 
-    async def do_connect(self, device):
+    async def _do_connect(self, device):
         client = BleakClient(device)
         await client.connect()
 
         def wrapper(function):
             async def wrapped(_, data):
                 self.last_device = device
-                await self.disconnect_non_last()
+                await self._disconnect_non_last()
                 await function(_, data)
 
             return wrapped
 
-        await client.start_notify(GYRO_UUID, wrapper(self.raw_on_gyro))
-        await client.start_notify(ACC_UUID, wrapper(self.raw_on_acc))
-        await client.start_notify(GRAV_UUID, wrapper(self.raw_on_grav))
-        await client.start_notify(QUAT_UUID, wrapper(self.raw_on_quat))
-        await client.start_notify(GESTURE_UUID, wrapper(self.raw_on_gesture))
-        await client.start_notify(TOUCH_UUID, wrapper(self.raw_on_touch))
-        await client.start_notify(MOTION_UUID, wrapper(self.raw_on_motion))
+        await client.start_notify(GYRO_UUID, wrapper(self._raw_on_gyro))
+        await client.start_notify(ACC_UUID, wrapper(self._raw_on_acc))
+        await client.start_notify(GRAV_UUID, wrapper(self._raw_on_grav))
+        await client.start_notify(QUAT_UUID, wrapper(self._raw_on_quat))
+        await client.start_notify(GESTURE_UUID, wrapper(self._raw_on_gesture))
+        await client.start_notify(TOUCH_UUID, wrapper(self._raw_on_touch))
+        await client.start_notify(MOTION_UUID, wrapper(self._raw_on_motion))
 
-    async def disconnect_non_last(self):
+    async def _disconnect_non_last(self):
         await self.scanner.stop()
         for device in self.found_devices:
             if device != self.last_device:
                 client = BleakClient(device)
                 await client.disconnect()
 
-    async def raw_on_gyro(self, _, data):
+    async def _raw_on_gyro(self, _, data):
         gyro = struct.unpack(">3f", data)
         self.on_gyro(gyro)
 
     def on_gyro(self, angular_velocity):
         pass
 
-    async def raw_on_acc(self, _, data):
+    async def _raw_on_acc(self, _, data):
         acc = struct.unpack(">3f", data)
         self.on_acc(acc)
 
     def on_acc(self, acceleration):
         pass
 
-    async def raw_on_grav(self, _, data):
+    async def _raw_on_grav(self, _, data):
         grav = struct.unpack(">3f", data)
         self.on_grav(grav)
 
     def on_grav(self, gravity_vector):
         pass
 
-    async def raw_on_quat(self, _, data):
+    async def _raw_on_quat(self, _, data):
         quat = struct.unpack(">4f", data[:16])
         self.on_quat(quat)
 
     def on_quat(self, quaternion):
         pass
 
-    async def raw_on_gesture(self, _, data):
+    async def _raw_on_gesture(self, _, data):
         gesture = struct.unpack(">b", data)
         if GESTURES[gesture[0]] == "Tap":
             self.on_tap()
@@ -135,7 +135,7 @@ class WatchManager:
     def on_tap(self):
         pass
 
-    async def raw_on_touch(self, _, data):
+    async def _raw_on_touch(self, _, data):
         touch = struct.unpack(">b2f", data)
         touch_type = TOUCH_TYPES[touch[0]]
         x = touch[1]
@@ -157,7 +157,7 @@ class WatchManager:
     def on_touch_move(self, x, y):
         pass
 
-    async def raw_on_motion(self, _, data):
+    async def _raw_on_motion(self, _, data):
         motion = struct.unpack(">2b", data)
         motion_type = MOTION_TYPES[motion[0]]
         if motion_type == "Rotary":

@@ -103,7 +103,7 @@ class WatchManager:
         gyro = struct.unpack(">3f", data)
         self.on_gyro(gyro)
 
-    def on_gyro(self, angularVelocity):
+    def on_gyro(self, angular_velocity):
         pass
 
     async def raw_on_acc(self, _, data):
@@ -117,7 +117,7 @@ class WatchManager:
         grav = struct.unpack(">3f", data)
         self.on_grav(grav)
 
-    def on_grav(self, gravityVector):
+    def on_grav(self, gravity_vector):
         pass
 
     async def raw_on_quat(self, _, data):

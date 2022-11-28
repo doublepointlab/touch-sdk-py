@@ -73,3 +73,6 @@ def on_back_button(self):
     print('back button')
 ```
 Called when the back button is pressed and released. WearOS does not support separate button down and button up events for the back button.
+
+## Pylint
+`python3 -m pylint src --rcfile=.pylintrc`

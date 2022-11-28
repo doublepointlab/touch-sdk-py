@@ -36,7 +36,10 @@ class WatchManager:
         self.scanner = None
 
     def start(self):
-        asyncio.run(self.run())
+        try:
+            asyncio.run(self.run())
+        except KeyboardInterrupt:
+            pass
 
     async def run(self):
         self.scanner = BleakScanner(

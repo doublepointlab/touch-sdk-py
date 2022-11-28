@@ -164,8 +164,3 @@ class WatchManager:
 
     def on_back_button(self):
         pass
-
-
-if __name__ == "__main__":
-    wm = WatchManager()
-    wm.start()

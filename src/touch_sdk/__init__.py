@@ -1,3 +1,3 @@
-from watch_manager import WatchManager
+from touch_sdk.watch_manager import WatchManager
 
-__version__ = '0.0.12'
+__version__ = '0.0.13'

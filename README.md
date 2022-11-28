@@ -7,8 +7,8 @@ Connects to Port 6 Touch SDK compatible Bluetooth devices – like [this WearOS 
 from touch_sdk import WatchManager
 
 class MyWatchManager(WatchManager):
-    def on_gyro(self, angularVelocity):
-        print(angularVelocity)
+    def on_gyro(self, angular_velocity):
+        print(angular_velocity)
 
 wm = MyWatchManager()
 wm.start()
@@ -32,14 +32,14 @@ def on_acc(self, acceleration):
 
 ### Angulary velocity / gyroscope
 ```
-def on_gyro(self, angularVelocity):
-    print(angularVelocity)
+def on_gyro(self, angular_velocity):
+    print(angular_velocity)
 ```
 
 ### Gravity vector
 ```
-def on_grav(self, gravityVector):
-    print('gravity', gravityVector)
+def on_grav(self, gravity_vector):
+    print('gravity', gravity_vector)
 ```
 
 ### Orientation / quaternion

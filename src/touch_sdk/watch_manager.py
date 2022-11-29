@@ -95,7 +95,12 @@ class WatchManager:
         await client.start_notify(MOTION_UUID, wrapper(self._raw_on_motion))
 
     async def _disconnect_non_last(self):
-        await self.scanner.stop()
+        try:
+            await self.scanner.stop()
+        except:
+            # self.scanner is None sometimes and checking for that in an if before
+            # calling scanner.stop doesn't work on Windows for some reason
+            pass
         for device in self.found_devices:
             if device != self.last_device:
                 client = BleakClient(device)

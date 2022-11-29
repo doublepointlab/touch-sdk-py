@@ -1,14 +1,14 @@
 # Touch SDK py
 
-Connects to Port 6 Touch SDK compatible Bluetooth devices – like [this WearOS app](https://play.google.com/store/apps/details?id=io.port6.watchbridge).
+Connects to Port 6 Touch SDK compatible Bluetooth devices – like [this Wear OS app](https://play.google.com/store/apps/details?id=io.port6.watchbridge).
 
 ## Example usage
 ```
 from touch_sdk import WatchManager
 
 class MyWatchManager(WatchManager):
-    def on_gyro(self, angular_velocity):
-        print(angular_velocity)
+    def on_sensors(self, sensors):
+        print(sensors)
 
 wm = MyWatchManager()
 wm.start()
@@ -24,28 +24,13 @@ def on_tap(self):
     print('tap')
 ```
 
-### Acceleration
+### Sensors
 ```
-def on_acc(self, acceleration):
-    print(acceleration)
-```
-
-### Angulary velocity / gyroscope
-```
-def on_gyro(self, angular_velocity):
-    print(angular_velocity)
-```
-
-### Gravity vector
-```
-def on_grav(self, gravity_vector):
-    print('gravity', gravity_vector)
-```
-
-### Orientation / quaternion
-```
-def on_quat(self, quaternion):
-    print('quat', quaternion)
+def on_sensors(self, sensors):
+    print(sensors.acceleration) # x, y, z
+    print(sensors.gravity) # x, y, z
+    print(sensors.angular_velocity) # x, y, z
+    print(sensors.orientation) # x, y, z, w
 ```
 
 ### Touch screen
@@ -58,6 +43,9 @@ def on_touch_up(self, x, y):
 
 def on_touch_move(self, x, y):
     print('touch move', x, y)
+
+def on_touch_cancel(self, x, y):
+    print('touch cancel', x, y)
 ```
 
 ### Rotary dial
@@ -72,7 +60,7 @@ Outputs +1 for clockwise and -1 for counter-clockwise.
 def on_back_button(self):
     print('back button')
 ```
-Called when the back button is pressed and released. WearOS does not support separate button down and button up events for the back button.
+Called when the back button is pressed and released. Wear OS does not support separate button down and button up events for the back button.
 
 ## Pylint
 `python3 -m pylint src --rcfile=.pylintrc`

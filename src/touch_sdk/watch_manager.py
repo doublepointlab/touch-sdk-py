@@ -4,6 +4,8 @@ import struct
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 
+from touch_sdk.protobuf.watch_output_pb2 import Update
+
 
 # GATT characteristic UUIDs
 
@@ -22,6 +24,8 @@ GESTURE_UUID = "008e74d1-7bb3-4ac5-8baf-e5e372cced76"
 TOUCH_UUID = "008e74d2-7bb3-4ac5-8baf-e5e372cced76"
 MOTION_UUID = "008e74d3-7bb3-4ac5-8baf-e5e372cced76"
 
+PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
+PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 
 TOUCH_TYPES = {0: "Down", 1: "Up", 2: "Move"}
 MOTION_TYPES = {0: "Rotary", 1: "Back button"}
@@ -78,6 +82,20 @@ class WatchManager:
     async def _do_connect(self, client, device):
         await client.connect()
 
+        def wrap_protobuf(callback):
+            async def wrapped(_, data):
+                message = Update()
+                message.ParseFromString(bytes(data))
+
+                if all(s != Update.Signal.DISCONNECT for s in message.signals):
+                    self.last_device = device
+                    await self._disconnect_non_last()
+                    await callback(message)
+                else:
+                    await client.disconnect()
+
+            return wrapped
+
         def wrapper(function):
             async def wrapped(_, data):
                 self.last_device = device
@@ -85,6 +103,8 @@ class WatchManager:
                 await function(_, data)
 
             return wrapped
+
+        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
         await client.start_notify(GYRO_UUID, wrapper(self._raw_on_gyro))
         await client.start_notify(ACC_UUID, wrapper(self._raw_on_acc))
@@ -100,6 +120,9 @@ class WatchManager:
             if device != self.last_device:
                 client = BleakClient(device)
                 await client.disconnect()
+
+    async def _on_protobuf(self, message):
+        print("message")
 
     async def _raw_on_gyro(self, _, data):
         gyro = struct.unpack(">3f", data)

@@ -110,7 +110,7 @@ class WatchManager:
     async def _disconnect_non_last(self):
         try:
             await self.scanner.stop()
-        except:
+        except AttributeError:
             # self.scanner is None sometimes and checking for that in an if before
             # calling scanner.stop doesn't work on Windows for some reason
             pass

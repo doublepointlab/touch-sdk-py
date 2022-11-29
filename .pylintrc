@@ -1,2 +1,3 @@
 [MAIN]
 good-names=x,y
+ignore=protobuf

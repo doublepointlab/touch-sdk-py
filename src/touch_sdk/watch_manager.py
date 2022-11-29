@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 
+# pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
 

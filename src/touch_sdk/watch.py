@@ -34,12 +34,15 @@ class Watch:
     Watch also parses the data that comes over Bluetooth and returns it through
     callback methods."""
 
-    def __init__(self):
+    def __init__(self, name_filter=None):
         """Creates a new instance of Watch. Does not start scanning for Bluetooth
-        devices. Use Watch.start to enter the scanning and connection event loop."""
+        devices. Use Watch.start to enter the scanning and connection event loop.
+
+        Optional name_filter connects only to watches with that name (case insensitive)"""
         self._connector = BLEConnector(
             self._handle_connect,
-            INTERACTION_SERVICE
+            INTERACTION_SERVICE,
+            name_filter
         )
         self.connected = False
 

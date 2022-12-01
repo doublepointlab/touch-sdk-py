@@ -33,6 +33,7 @@ class WatchManager:
             self._handle_connect,
             INTERACTION_SERVICE
         )
+        self.connected = False
 
     def start(self):
         self._connector.start()
@@ -51,7 +52,10 @@ class WatchManager:
                 message.ParseFromString(bytes(data))
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    await self._connector.disconnect_devices(exclude=device)
+                    if not self.connected:
+                        self.connected = True
+                        await self._connector.disconnect_devices(exclude=device)
+                        print(f'Connected to {name}')
                     await callback(message)
                 else:
                     await client.disconnect()

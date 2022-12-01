@@ -9,23 +9,11 @@ import asyncio_atexit
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
 
-# GATT characteristic UUIDs
-
-# These are found under the service with a
-# service UUID of "4b574af0-72d7-45d2-a1bb-23cd0ec20c57"
-ACC_UUID = "4b574af2-72d7-45d2-a1bb-23cd0ec20c57"
-GYRO_UUID = "4b574af1-72d7-45d2-a1bb-23cd0ec20c57"
-GRAV_UUID = "4b574af3-72d7-45d2-a1bb-23cd0ec20c57"
-QUAT_UUID = "4b574af4-72d7-45d2-a1bb-23cd0ec20c57"
-
-SERVICE_UUID = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
-
-# These are found under the service with a
-# service UUID of "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
-GESTURE_UUID = "008e74d1-7bb3-4ac5-8baf-e5e372cced76"
-TOUCH_UUID = "008e74d2-7bb3-4ac5-8baf-e5e372cced76"
-MOTION_UUID = "008e74d3-7bb3-4ac5-8baf-e5e372cced76"
-
+# GATT related UUIDs
+# INTERACTION_SERVICE is needed for scanning while the Wear OS
+# app is backwards compatible. Only one service UUID can be
+# advertised.
+INTERACTION_SERVICE = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
 PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 
@@ -59,7 +47,7 @@ class WatchManager:
     async def run(self):
         asyncio_atexit.register(self.stop)
         self.scanner = BleakScanner(
-            self._detection_callback, service_uuids=[SERVICE_UUID]
+            self._detection_callback, service_uuids=[INTERACTION_SERVICE]
         )
         await self.scanner.start()
         print('Scanning...')
@@ -79,7 +67,7 @@ class WatchManager:
             or advertisement_data.local_name
         )
 
-        if SERVICE_UUID in advertisement_data.service_uuids:
+        if INTERACTION_SERVICE in advertisement_data.service_uuids:
             if device in self.found_devices:
                 return
 

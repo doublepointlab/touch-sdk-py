@@ -1,22 +1,13 @@
 from touch_sdk import WatchManager
 
-class MyWatchManager(WatchManager):    
+class MyWatchManager(WatchManager):
 
-    # def on_gyro(self, angularVelocity):
-    #     print(angularVelocity)
+    # def on_sensors(self, sensors):
+    #     print(sensors)
 
-    # def on_acc(self, acceleration):
-    #     print('acceleration', acceleration)
-
-    # def on_grav(self, gravityVector):
-    #     print('gravity', gravityVector)
-
-    # def on_quat(self, quaternion):
-    #     print('quat', quaternion)
-    
     def on_tap(self):
         print('tap')
-        
+
     def on_touch_down(self, x, y):
         print('touch down', x, y)
 
@@ -25,7 +16,7 @@ class MyWatchManager(WatchManager):
 
     def on_touch_move(self, x, y):
         print('touch move', x, y)
-    
+
     def on_rotary(self, direction):
         print('rotary', direction)
 

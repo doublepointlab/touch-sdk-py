@@ -1,8 +1,12 @@
 import asyncio
-import struct
+from dataclasses import dataclass
 
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
+import asyncio_atexit
+
+# pylint: disable=no-name-in-module
+from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
 
 # GATT characteristic UUIDs
@@ -22,6 +26,8 @@ GESTURE_UUID = "008e74d1-7bb3-4ac5-8baf-e5e372cced76"
 TOUCH_UUID = "008e74d2-7bb3-4ac5-8baf-e5e372cced76"
 MOTION_UUID = "008e74d3-7bb3-4ac5-8baf-e5e372cced76"
 
+PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
+PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 
 TOUCH_TYPES = {0: "Down", 1: "Up", 2: "Move"}
 MOTION_TYPES = {0: "Rotary", 1: "Back button"}
@@ -29,11 +35,20 @@ ROTARY_INFOS = {0: "clockwise", 1: "counterclockwise"}
 GESTURES = {0: "None", 1: "Tap"}
 
 
+@dataclass(frozen=True)
+class SensorFrame:
+    acceleration: tuple[float]
+    gravity: tuple[float]
+    angular_velocity: tuple[float]
+    orientation: tuple[float]
+
+
 class WatchManager:
     def __init__(self):
         self.found_devices = []
         self.last_device = None
         self.scanner = None
+        self.client = None
 
     def start(self):
         try:
@@ -42,12 +57,18 @@ class WatchManager:
             pass
 
     async def run(self):
+        asyncio_atexit.register(self.stop)
         self.scanner = BleakScanner(
             self._detection_callback, service_uuids=[SERVICE_UUID]
         )
         await self.scanner.start()
         while True:
             await asyncio.sleep(1)
+
+    async def stop(self):
+        await self._disconnect_non_last()
+        if self.client:
+            await self.client.disconnect()
 
     async def _detection_callback(self, device, advertisement_data):
         name = (
@@ -68,36 +89,37 @@ class WatchManager:
                 return
 
             print(f"Found {name}")
+            self.client = client
             try:
-                await self._do_connect(client, device)
+                await self._do_connect(device)
             except asyncio.exceptions.CancelledError:
                 print("connection cancelled from", name)
             except BleakError:
                 pass
 
-    async def _do_connect(self, client, device):
-        await client.connect()
+    async def _do_connect(self, device):
+        await self.client.connect()
 
-        def wrapper(function):
+        def wrap_protobuf(callback):
             async def wrapped(_, data):
-                self.last_device = device
-                await self._disconnect_non_last()
-                await function(_, data)
+                message = Update()
+                message.ParseFromString(bytes(data))
+
+                if all(s != Update.Signal.DISCONNECT for s in message.signals):
+                    self.last_device = device
+                    await self._disconnect_non_last()
+                    await callback(message)
+                else:
+                    await self.client.disconnect()
 
             return wrapped
 
-        await client.start_notify(GYRO_UUID, wrapper(self._raw_on_gyro))
-        await client.start_notify(ACC_UUID, wrapper(self._raw_on_acc))
-        await client.start_notify(GRAV_UUID, wrapper(self._raw_on_grav))
-        await client.start_notify(QUAT_UUID, wrapper(self._raw_on_quat))
-        await client.start_notify(GESTURE_UUID, wrapper(self._raw_on_gesture))
-        await client.start_notify(TOUCH_UUID, wrapper(self._raw_on_touch))
-        await client.start_notify(MOTION_UUID, wrapper(self._raw_on_motion))
+        await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
     async def _disconnect_non_last(self):
         try:
             await self.scanner.stop()
-        except:
+        except AttributeError:
             # self.scanner is None sometimes and checking for that in an if before
             # calling scanner.stop doesn't work on Windows for some reason
             pass
@@ -106,54 +128,65 @@ class WatchManager:
                 client = BleakClient(device)
                 await client.disconnect()
 
-    async def _raw_on_gyro(self, _, data):
-        gyro = struct.unpack(">3f", data)
-        self.on_gyro(gyro)
+    @staticmethod
+    def _protovec2_to_tuple(vec):
+        return (vec.x, vec.y)
 
-    def on_gyro(self, angular_velocity):
-        pass
+    @staticmethod
+    def _protovec3_to_tuple(vec):
+        return (vec.x, vec.y, vec.z)
 
-    async def _raw_on_acc(self, _, data):
-        acc = struct.unpack(">3f", data)
-        self.on_acc(acc)
+    @staticmethod
+    def _protoquat_to_tuple(vec):
+        return (vec.x, vec.y, vec.z, vec.w)
 
-    def on_acc(self, acceleration):
-        pass
+    async def _on_protobuf(self, message):
+        self._proto_on_sensors(message.sensorFrames)
+        self._proto_on_gestures(message.gestures)
+        self._proto_on_button_events(message.buttonEvents)
+        self._proto_on_touch_events(message.touchEvents)
+        self._proto_on_rotary_events(message.rotaryEvents)
 
-    async def _raw_on_grav(self, _, data):
-        grav = struct.unpack(">3f", data)
-        self.on_grav(grav)
+    def _proto_on_sensors(self, frames):
+        frame = frames[-1]
+        self.on_sensors(
+            SensorFrame(
+                acceleration=self._protovec3_to_tuple(frame.acc),
+                gravity=self._protovec3_to_tuple(frame.grav),
+                angular_velocity=self._protovec3_to_tuple(frame.gyro),
+                orientation=self._protoquat_to_tuple(frame.quat),
+            )
+        )
 
-    def on_grav(self, gravity_vector):
-        pass
-
-    async def _raw_on_quat(self, _, data):
-        quat = struct.unpack(">4f", data[:16])
-        self.on_quat(quat)
-
-    def on_quat(self, quaternion):
-        pass
-
-    async def _raw_on_gesture(self, _, data):
-        gesture = struct.unpack(">b", data)
-        if GESTURES[gesture[0]] == "Tap":
+    def _proto_on_gestures(self, gestures):
+        if any(g.type == Gesture.GestureType.TAP for g in gestures):
             self.on_tap()
+
+    def _proto_on_button_events(self, buttons):
+        if any(b.id == 0 for b in buttons):
+            self.on_back_button()
+
+    def _proto_on_touch_events(self, touch_events):
+        for touch in touch_events:
+            coords = self._protovec2_to_tuple(touch.coords[0])
+            if touch.eventType == TouchEvent.TouchEventType.BEGIN:
+                self.on_touch_down(*coords)
+            elif touch.eventType == TouchEvent.TouchEventType.END:
+                self.on_touch_up(*coords)
+            elif touch.eventType == TouchEvent.TouchEventType.MOVE:
+                self.on_touch_move(*coords)
+            elif touch.eventType == TouchEvent.TouchEventType.CANCEL:
+                self.on_touch_cancel(*coords)
+
+    def _proto_on_rotary_events(self, rotary_events):
+        for rotary in rotary_events:
+            self.on_rotary(-rotary.step)
+
+    def on_sensors(self, sensor_frame):
+        pass
 
     def on_tap(self):
         pass
-
-    async def _raw_on_touch(self, _, data):
-        touch = struct.unpack(">b2f", data)
-        touch_type = TOUCH_TYPES[touch[0]]
-        x = touch[1]
-        y = touch[2]
-
-        if touch_type == "Down":
-            self.on_touch_down(x, y)
-        if touch_type == "Up":
-            self.on_touch_up(x, y)
-        if touch_type == "Move":
-            self.on_touch_move(x, y)
 
     def on_touch_down(self, x, y):
         pass
@@ -164,14 +197,8 @@ class WatchManager:
     def on_touch_move(self, x, y):
         pass
 
-    async def _raw_on_motion(self, _, data):
-        motion = struct.unpack(">2b", data)
-        motion_type = MOTION_TYPES[motion[0]]
-        if motion_type == "Rotary":
-            value = 1 - 2 * motion[1]  # 0,1 -> +1,-1
-            self.on_rotary(value)
-        if motion_type == "Back button":
-            self.on_back_button()
+    def on_touch_cancel(self, x, y):
+        pass
 
     def on_rotary(self, direction):
         pass

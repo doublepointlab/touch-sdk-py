@@ -62,6 +62,7 @@ class WatchManager:
             self._detection_callback, service_uuids=[SERVICE_UUID]
         )
         await self.scanner.start()
+        print('Scanning...')
         while True:
             await asyncio.sleep(1)
 

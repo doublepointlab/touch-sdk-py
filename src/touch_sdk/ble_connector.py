@@ -4,8 +4,9 @@ from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 import asyncio_atexit
 
-class MultiConnectionClient:
-    def __init__(self, service_uuid):
+class BLEConnector:
+    def __init__(self, connection_handler, service_uuid):
+        self.handle_connect = connection_handler
         self.service_uuid = service_uuid
         self.scanner = None
         self.devices = {}
@@ -51,14 +52,11 @@ class MultiConnectionClient:
 
             try:
                 await client.connect()
-                await self.handle_connect(device)
+                await self.handle_connect(device, name)
             except asyncio.exceptions.CancelledError:
                 print("Connection cancelled from", name)
             except BleakError:
                 pass
-    
-    async def handle_connect(self, device):
-        pass
 
     async def disconnect_devices(self, exclude=None):
         try:

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from touch_sdk.multi_connection_client import MultiConnectionClient
+from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
@@ -27,19 +27,31 @@ class SensorFrame:
     orientation: tuple[float]
 
 
-class WatchManager(MultiConnectionClient):
+class WatchManager:
     def __init__(self):
-        super().__init__(INTERACTION_SERVICE)
+        self._connector = BLEConnector(
+            self._handle_connect,
+            INTERACTION_SERVICE
+        )
 
-    async def handle_connect(self, device):
-        client = self.devices[device]
+    def start(self):
+        self._connector.start()
+
+    def run(self):
+        self._connector.run()
+    
+    def stop(self):
+        self._connector.stop()
+
+    async def _handle_connect(self, device, name):
+        client = self._connector.devices[device]
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    await self.disconnect_devices(exclude=device)
+                    await self._connector.disconnect_devices(exclude=device)
                     await callback(message)
                 else:
                     await client.disconnect()

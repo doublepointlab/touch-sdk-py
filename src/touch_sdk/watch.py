@@ -5,6 +5,9 @@ from touch_sdk.ble_connector import BLEConnector
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
 
+__doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
+
+
 # GATT related UUIDs
 # INTERACTION_SERVICE is needed for scanning while the Wear OS
 # app is backwards compatible. Only one service UUID can be
@@ -16,6 +19,7 @@ PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 
 @dataclass(frozen=True)
 class SensorFrame:
+    """A Frozen container class for values of all streamable Touch SDK sensors."""
     acceleration: tuple[float]
     gravity: tuple[float]
     angular_velocity: tuple[float]
@@ -23,7 +27,16 @@ class SensorFrame:
 
 
 class Watch:
+    """Scans Touch SDK compatible Bluetooth LE devices and connects to all of them.
+
+    After the controller device accepts a connection, Watch disconnects other devices.
+
+    Watch also parses the data that comes over Bluetooth and returns it through
+    callback methods."""
+
     def __init__(self):
+        """Creates a new instance of Watch. Does not start scanning for Bluetooth
+        devices. Use Watch.start to enter the scanning and connection event loop."""
         self._connector = BLEConnector(
             self._handle_connect,
             INTERACTION_SERVICE
@@ -31,12 +44,19 @@ class Watch:
         self.connected = False
 
     def start(self):
+        """Blocking event loop that starts the Bluetooth scanner.
+
+        More handy than Watch.run when only this event loop is needed."""
         self._connector.start()
 
-    def run(self):
-        self._connector.run()
+    async def run(self):
+        """Asynchronous blocking event loop that starts the Bluetooth scanner.
+
+        Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
+        await self._connector.run()
 
     def stop(self):
+        """Stops bluetooth scanner and disconnects Bluetooth devices."""
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
@@ -120,25 +140,30 @@ class Watch:
             self.on_rotary(-rotary.step)
 
     def on_sensors(self, sensor_frame):
-        pass
+        """Callback when accelerometer, gyroscope, gravity and orientation
+        is changes. Guaranteed to have all the four sensors in every update."""
 
     def on_tap(self):
-        pass
+        """Called when the tap gesture happens."""
 
     def on_touch_down(self, x, y):
-        pass
+        """Touch screen touch starts."""
 
     def on_touch_up(self, x, y):
-        pass
+        """Touch screen touch ends."""
 
     def on_touch_move(self, x, y):
-        pass
+        """Touch screen touch moves."""
 
     def on_touch_cancel(self, x, y):
-        pass
+        """Touch screen touch becomes a swipe gesture that goes to another view."""
 
     def on_rotary(self, direction):
-        pass
+        """Rotary dial around the watch screen is turned.
+
+        direction is +1 for clockwise, -1 for counterclockwise."""
 
     def on_back_button(self):
-        pass
+        """Back button of the watch is pressed and released.
+
+        Wear OS does not support separate button down and button up events."""

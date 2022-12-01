@@ -1,10 +1,6 @@
-import asyncio
 from dataclasses import dataclass
 
-from bleak import BleakClient, BleakScanner
-from bleak.exc import BleakError
-import asyncio_atexit
-
+from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 
@@ -33,89 +29,36 @@ class SensorFrame:
 
 class WatchManager:
     def __init__(self):
-        self.found_devices = []
-        self.last_device = None
-        self.scanner = None
-        self.client = None
+        self._connector = BLEConnector(
+            self._handle_connect,
+            INTERACTION_SERVICE
+        )
 
     def start(self):
-        try:
-            asyncio.run(self.run())
-        except KeyboardInterrupt:
-            pass
+        self._connector.start()
 
-    async def run(self):
-        asyncio_atexit.register(self.stop)
-        self.scanner = BleakScanner(
-            self._detection_callback, service_uuids=[INTERACTION_SERVICE]
-        )
-        await self.scanner.start()
-        print('Scanning...')
-        while True:
-            await asyncio.sleep(1)
+    def run(self):
+        self._connector.run()
+    
+    def stop(self):
+        self._connector.stop()
 
-    async def stop(self):
-        await self._disconnect_non_last()
-        if self.client:
-            await self.client.disconnect()
-
-    async def _detection_callback(self, device, advertisement_data):
-        name = (
-            advertisement_data.manufacturer_data.get(0xFFFF, bytearray()).decode(
-                "utf-8"
-            )
-            or advertisement_data.local_name
-        )
-
-        if INTERACTION_SERVICE in advertisement_data.service_uuids:
-            if device in self.found_devices:
-                return
-
-            self.found_devices.append(device)
-
-            client = BleakClient(device)
-            if client.is_connected:
-                return
-
-            print(f"Found {name}")
-            self.client = client
-            try:
-                await self._do_connect(device)
-            except asyncio.exceptions.CancelledError:
-                print("connection cancelled from", name)
-            except BleakError:
-                pass
-
-    async def _do_connect(self, device):
-        await self.client.connect()
-
+    async def _handle_connect(self, device, name):
+        client = self._connector.devices[device]
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    self.last_device = device
-                    await self._disconnect_non_last()
+                    await self._connector.disconnect_devices(exclude=device)
                     await callback(message)
                 else:
-                    await self.client.disconnect()
+                    await client.disconnect()
 
             return wrapped
 
-        await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
-
-    async def _disconnect_non_last(self):
-        try:
-            await self.scanner.stop()
-        except AttributeError:
-            # self.scanner is None sometimes and checking for that in an if before
-            # calling scanner.stop doesn't work on Windows for some reason
-            pass
-        for device in self.found_devices:
-            if device != self.last_device:
-                client = BleakClient(device)
-                await client.disconnect()
+        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
     @staticmethod
     def _protovec2_to_tuple(vec):

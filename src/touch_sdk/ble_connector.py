@@ -66,7 +66,6 @@ class BLEConnector:
             # calling scanner.stop doesn't work on Windows for some reason
             pass
 
-        for device in self.devices:
+        for device, client in self.devices.items():
             if device != exclude:
-                client = self.devices[device]
                 await client.disconnect()

@@ -66,7 +66,7 @@ class WatchManager:
             await asyncio.sleep(1)
 
     async def stop(self):
-        await self.scanner.stop()
+        await self._disconnect_non_last()
         if self.client:
             await self.client.disconnect()
 

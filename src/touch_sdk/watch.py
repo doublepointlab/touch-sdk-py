@@ -40,7 +40,7 @@ class Watch:
 
     def run(self):
         self._connector.run()
-    
+
     def stop(self):
         self._connector.stop()
 

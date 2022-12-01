@@ -27,7 +27,7 @@ class SensorFrame:
     orientation: tuple[float]
 
 
-class WatchManager:
+class Watch:
     def __init__(self):
         self._connector = BLEConnector(
             self._handle_connect,

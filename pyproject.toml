@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "touch-sdk"
-version = "0.0.15"
+version = "0.0.16"
 description = "Port 6 Touch SDK"
 license = "ISC"
 authors = [
@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "bleak==0.19.5",
     "protobuf==3.20.0",
+    "asyncio-atexit=1.0.1",
 ]
 
 [project.urls]

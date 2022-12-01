@@ -24,6 +24,12 @@ watch.start()
 
 All callback functions should be methods in the class that inherits `Watch`, like in the example above.
 
+An optional name string in the constructor will search only for devices with that name (case insensitive).
+
+```python
+watch = MyWatch('fvaf')
+```
+
 ### Tap gesture
 ```python
 def on_tap(self):

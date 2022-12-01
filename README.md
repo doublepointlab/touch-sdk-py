@@ -10,19 +10,19 @@ pip install touch-sdk
 
 ## Example usage
 ```python
-from touch_sdk import WatchManager
+from touch_sdk import Watch
 
-class MyWatchManager(WatchManager):
+class MyWatch(Watch):
     def on_sensors(self, sensors):
         print(sensors)
 
-wm = MyWatchManager()
-wm.start()
+watch = MyWatch()
+watch.start()
 ```
 
 ## Usage
 
-All callback functions should be methods in the class that inherits `WatchManager`, like in the example above.
+All callback functions should be methods in the class that inherits `Watch`, like in the example above.
 
 ### Tap gesture
 ```python

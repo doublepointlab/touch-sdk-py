@@ -1,6 +1,6 @@
-from touch_sdk import WatchManager
+from touch_sdk import Watch
 
-class MyWatchManager(WatchManager):
+class MyWatch(Watch):
 
     # def on_sensors(self, sensors):
     #     print(sensors)
@@ -23,5 +23,5 @@ class MyWatchManager(WatchManager):
     def on_back_button(self):
         print('back button')
 
-wm = MyWatchManager()
-wm.start()
+watch = MyWatch()
+watch.start()

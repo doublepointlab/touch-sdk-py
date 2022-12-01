@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
+import asyncio_atexit
 
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
@@ -47,6 +48,7 @@ class WatchManager:
         self.found_devices = []
         self.last_device = None
         self.scanner = None
+        self.client = None
 
     def start(self):
         try:
@@ -55,12 +57,18 @@ class WatchManager:
             pass
 
     async def run(self):
+        asyncio_atexit.register(self.stop)
         self.scanner = BleakScanner(
             self._detection_callback, service_uuids=[SERVICE_UUID]
         )
         await self.scanner.start()
         while True:
             await asyncio.sleep(1)
+
+    async def stop(self):
+        await self.scanner.stop()
+        if self.client:
+            await self.client.disconnect()
 
     async def _detection_callback(self, device, advertisement_data):
         name = (
@@ -81,15 +89,16 @@ class WatchManager:
                 return
 
             print(f"Found {name}")
+            self.client = client
             try:
-                await self._do_connect(client, device)
+                await self._do_connect(device)
             except asyncio.exceptions.CancelledError:
                 print("connection cancelled from", name)
             except BleakError:
                 pass
 
-    async def _do_connect(self, client, device):
-        await client.connect()
+    async def _do_connect(self, device):
+        await self.client.connect()
 
         def wrap_protobuf(callback):
             async def wrapped(_, data):
@@ -101,11 +110,11 @@ class WatchManager:
                     await self._disconnect_non_last()
                     await callback(message)
                 else:
-                    await client.disconnect()
+                    await self.client.disconnect()
 
             return wrapped
 
-        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+        await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
     async def _disconnect_non_last(self):
         try:

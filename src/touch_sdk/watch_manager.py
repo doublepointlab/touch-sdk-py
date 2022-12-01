@@ -39,7 +39,6 @@ class WatchManager(MultiConnectionClient):
                 message.ParseFromString(bytes(data))
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    self.last_device = device
                     await self.disconnect_devices(exclude=device)
                     await callback(message)
                 else:

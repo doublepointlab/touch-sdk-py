@@ -4,20 +4,38 @@ from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 import asyncio_atexit
 
+__doc__ = """Scans for Bluetooth devices with a given GATT service UUID and connects
+to all of them."""
+
 class BLEConnector:
+    """Scans for Bluetooth devices with service_uuid and connects to
+    all of them. Also handles disconnects.
+
+    connection_handler gets called every time the scanner finds a new device.
+    It should take parameters device and name."""
+
     def __init__(self, connection_handler, service_uuid):
+        """Creates a new instance of BLEConnector. Does not start the scanning."""
         self.handle_connect = connection_handler
         self.service_uuid = service_uuid
         self.scanner = None
         self.devices = {}
 
     def start(self):
+        """Blocking event loop that starts the scanner. This is the easiest way
+        to enter the scanning loop.
+
+        Calls BLEConnector.run."""
         try:
             asyncio.run(self.run())
         except KeyboardInterrupt:
             pass
 
     async def run(self):
+        """Blocking async event loop that starts the scanner.
+
+        Useful when there are multiple async event loops in the program that
+        need to be run at the same time."""
         asyncio_atexit.register(self.stop)
         self.scanner = BleakScanner(
             self._detection_callback, service_uuids=[self.service_uuid]
@@ -28,6 +46,7 @@ class BLEConnector:
             await asyncio.sleep(1)
 
     async def stop(self):
+        """Stops the scanner and disconnects all clients."""
         await self.disconnect_devices()
 
     async def _detection_callback(self, device, advertisement_data):
@@ -59,6 +78,7 @@ class BLEConnector:
                 pass
 
     async def disconnect_devices(self, exclude=None):
+        """Disconnects all found devices except the one defined in exclude."""
         try:
             await self.scanner.stop()
         except AttributeError:

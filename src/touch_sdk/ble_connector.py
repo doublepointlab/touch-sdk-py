@@ -65,7 +65,7 @@ class BLEConnector:
                 return
 
             if self.name_filter is not None:
-                if name.lower() != self.name_filter.lower():
+                if self.name_filter.lower() not in name.lower():
                     return
 
             client = BleakClient(device)

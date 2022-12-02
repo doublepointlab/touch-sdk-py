@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "touch-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = "Port 6 Touch SDK"
 license = "ISC"
 authors = [
@@ -14,12 +14,12 @@ readme = "README.md"
 requires-python = ">=3.7"
 keywords = ["bluetooth"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: ISC License (ISCL)",
-    "Operating System :: Microsoft :: Windows :: Windows 10",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
     "Operating System :: Android",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Human Machine Interfaces",

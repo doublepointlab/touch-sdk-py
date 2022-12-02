@@ -2,6 +2,10 @@
 
 Connects to Port 6 Touch SDK compatible Bluetooth devices – like [this Wear OS app](https://play.google.com/store/apps/details?id=io.port6.watchbridge).
 
+There is also a [web SDK](https://www.npmjs.com/package/touch-sdk) and a [Unity SDK](https://openupm.com/packages/io.port6.sdk/).
+
+See [port6.io/sdk](https://port6.io/sdk/) for more info.
+
 ## Installation
 
 ```sh

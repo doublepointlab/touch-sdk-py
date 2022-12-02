@@ -72,3 +72,9 @@ Called when the back button is pressed and released. Wear OS does not support se
 ```sh
 python3 -m pylint src --rcfile=.pylintrc
 ```
+
+### Adding pylint to pre-commit
+```sh
+echo 'python3 -m pylint src --rcfile=.pylintrc -sn' > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```

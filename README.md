@@ -17,8 +17,8 @@ pip install touch-sdk
 from touch_sdk import Watch
 
 class MyWatch(Watch):
-    def on_sensors(self, sensors):
-        print(sensors)
+    def on_tap(self):
+        print('Tap')
 
 watch = MyWatch()
 watch.start()

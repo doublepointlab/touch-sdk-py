@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
+from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -15,6 +16,7 @@ __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with t
 INTERACTION_SERVICE = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
 PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
+PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
 
 
 @dataclass(frozen=True)
@@ -45,9 +47,10 @@ class Watch:
             name_filter
         )
         self.connected = False
+        self.client = None
 
     def start(self):
-        """Blocking event loop that starts the Bluetooth scanner.
+        """Blocking event loop that starts the Bluetooth scanner
 
         More handy than Watch.run when only this event loop is needed."""
         self._connector.start()
@@ -63,7 +66,7 @@ class Watch:
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
-        client = self._connector.devices[device]
+        self.client = self._connector.devices[device]
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
@@ -76,12 +79,13 @@ class Watch:
                         print(f'Connected to {name}')
                     await callback(message)
                 else:
-                    await client.disconnect()
+                    await self.client.disconnect()
 
             return wrapped
 
         try:
-            await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+
         except ValueError:
             # Sometimes there is a race condition in BLEConnector and _handle_connect
             # gets called twice for the same device. Calling client.start_notify twice
@@ -141,6 +145,17 @@ class Watch:
     def _proto_on_rotary_events(self, rotary_events):
         for rotary in rotary_events:
             self.on_rotary(-rotary.step)
+
+    async def trigger_haptics(self, intensity, length):
+        clampedIntensity = min(max(intensity, 0.0), 1.0)
+        clampedLength = min(max(int(length), 0), 5000)
+        hapticEvent = HapticEvent()
+        hapticEvent.type = HapticEvent.HapticType.ONESHOT
+        hapticEvent.length = clampedLength
+        hapticEvent.intensity = clampedIntensity
+        inputUpdate = InputUpdate()
+        inputUpdate.hapticEvent.CopyFrom(hapticEvent)
+        await self.client.write_gatt_char(PROTOBUF_INPUT, inputUpdate.SerializeToString())
 
     def on_sensors(self, sensor_frame):
         """Callback when accelerometer, gyroscope, gravity and orientation

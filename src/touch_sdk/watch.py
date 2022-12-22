@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import asyncio
 
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
@@ -146,7 +147,12 @@ class Watch:
         for rotary in rotary_events:
             self.on_rotary(-rotary.step)
 
-    async def trigger_haptics(self, intensity, length):
+    def _write_input_characteristic(self, data):
+        loop = asyncio.get_running_loop()
+        loop.create_task(self.client.write_gatt_char(PROTOBUF_INPUT, data))
+
+    @staticmethod
+    def _createHapticsUpdate(intensity, length):
         clampedIntensity = min(max(intensity, 0.0), 1.0)
         clampedLength = min(max(int(length), 0), 5000)
         hapticEvent = HapticEvent()
@@ -155,7 +161,12 @@ class Watch:
         hapticEvent.intensity = clampedIntensity
         inputUpdate = InputUpdate()
         inputUpdate.hapticEvent.CopyFrom(hapticEvent)
-        await self.client.write_gatt_char(PROTOBUF_INPUT, inputUpdate.SerializeToString())
+        return inputUpdate
+
+
+    def trigger_haptics(self, intensity, length):
+        inputUpdate = self._createHapticsUpdate(intensity, length)
+        self._write_input_characteristic(inputUpdate.SerializeToString())
 
     def on_sensors(self, sensor_frame):
         """Callback when accelerometer, gyroscope, gravity and orientation

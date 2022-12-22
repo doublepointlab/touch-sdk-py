@@ -21,6 +21,7 @@ class MyWatch(Watch):
         print('rotary', direction)
 
     def on_back_button(self):
+        self.trigger_haptics(1.0, 20)
         print('back button')
 
 watch = MyWatch()

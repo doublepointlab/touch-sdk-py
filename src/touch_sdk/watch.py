@@ -47,7 +47,6 @@ class Watch:
             INTERACTION_SERVICE,
             name_filter
         )
-        self.connected = False
         self.client = None
 
     def start(self):
@@ -67,31 +66,40 @@ class Watch:
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
-        self.client = self._connector.devices[device]
+        # print('h', name)
+        client = self._connector.devices[device]
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
+                print('new data', name, message)
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    if not self.connected:
-                        self.connected = True
+                    if not self.client:
+                        self.client = client
                         await self._connector.disconnect_devices(exclude=device)
                         print(f'Connected to {name}')
                     await callback(message)
                 else:
-                    await self.client.disconnect()
+                    if self.client:
+                        await self.client.disconnect()
+                        self.client = None
+                        print(f'Disconnected from {name}')
+                        await self._connector.start_scanner()
 
             return wrapped
 
-        try:
-            await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+        print('start_notify', name)
+        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
-        except ValueError:
-            # Sometimes there is a race condition in BLEConnector and _handle_connect
-            # gets called twice for the same device. Calling client.start_notify twice
-            # will result in an error.
-            pass
+        # try:
+        #     await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+
+        # except ValueError:
+        #     # Sometimes there is a race condition in BLEConnector and _handle_connect
+        #     # gets called twice for the same device. Calling client.start_notify twice
+        #     # will result in an error.
+        #     pass
 
     @staticmethod
     def _protovec2_to_tuple(vec):
@@ -149,7 +157,13 @@ class Watch:
 
     def _write_input_characteristic(self, data):
         loop = asyncio.get_running_loop()
-        loop.create_task(self.client.write_gatt_char(PROTOBUF_INPUT, data))
+        loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data))
+
+    async def _async_write_input_characteristic(self, characteristic, data):
+        print('perkele')
+        if self.client:
+            await self.client.write_gatt_char(characteristic, data)
+        print('perkele2')
 
     @staticmethod
     def _createHapticsUpdate(intensity, length):

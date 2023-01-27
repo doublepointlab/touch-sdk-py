@@ -83,6 +83,9 @@ def on_back_button(self):
 ```
 Called when the back button is pressed and released. Wear OS does not support separate button down and button up events for the back button.
 
+### Haptics
+The `trigger_haptics(intensity, length)` method can be used to initiate one-shot haptic effects on the watch. For example, to drive the haptics motor for 300 ms at 100% intensity on `watch`, call `watch.trigger_haptics(1.0, 300)`.
+
 ## Pylint
 ```sh
 python3 -m pylint src --rcfile=.pylintrc

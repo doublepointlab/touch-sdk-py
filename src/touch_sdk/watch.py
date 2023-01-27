@@ -66,13 +66,11 @@ class Watch:
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
-        # print('h', name)
         client = self._connector.devices[device]
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
-                print('new data', name, message)
 
                 if all(s != Update.Signal.DISCONNECT for s in message.signals):
                     if not self.client:
@@ -89,7 +87,6 @@ class Watch:
 
             return wrapped
 
-        print('start_notify', name)
         await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
         # try:
@@ -160,10 +157,8 @@ class Watch:
         loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data))
 
     async def _async_write_input_characteristic(self, characteristic, data):
-        print('perkele')
         if self.client:
             await self.client.write_gatt_char(characteristic, data)
-        print('perkele2')
 
     @staticmethod
     def _createHapticsUpdate(intensity, length):

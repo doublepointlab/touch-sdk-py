@@ -1,5 +1,10 @@
 # Touch SDK py
 
+![PyPI](https://img.shields.io/pypi/v/touch-sdk)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/touch-sdk)
+![PyPI - License](https://img.shields.io/pypi/l/touch-sdk)
+![Discord](https://img.shields.io/discord/869474617729875998)
+
 Connects to Port 6 Touch SDK compatible Bluetooth devices – like [this Wear OS app](https://play.google.com/store/apps/details?id=io.port6.watchbridge).
 
 There is also a [web SDK](https://www.npmjs.com/package/touch-sdk) and a [Unity SDK](https://openupm.com/packages/io.port6.sdk/).

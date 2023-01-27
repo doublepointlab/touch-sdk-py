@@ -79,8 +79,8 @@ class Watch:
                         print(f'Connected to {name}')
                     await callback(message)
                 else:
-                    if self.client:
-                        await self.client.disconnect()
+                    await client.disconnect()
+                    if self.client == client:
                         self.client = None
                         print(f'Disconnected from {name}')
                         await self._connector.start_scanner()

@@ -92,9 +92,11 @@ class Watch:
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
                     await client.disconnect()
                     if self.client == client:
-                        self.client = None
                         print(f'Disconnected from {name}')
+                        self.client = None
                         await self._connector.start_scanner()
+                    else:
+                        print(f'Connection declined from {name}')
 
                 # Watch sent some other data, but no disconnect signal = watch accepted the connection
                 else:

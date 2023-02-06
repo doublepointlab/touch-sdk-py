@@ -90,21 +90,36 @@ class Watch:
                 # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
                 # self.client == client)
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
+
+                    # As a GATT server, the watch can't actually disconnect on its own.
+                    # However, they want this connection to be ended, so the client side disconnects.
                     await client.disconnect()
+
+                    # This client had accepted the connection before -> "disconnected"
                     if self.client == client:
                         print(f'Disconnected from {name}')
                         self.client = None
                         await self._connector.start_scanner()
+
+                    # This client had NOT accepted the connection before -> "declined"
                     else:
                         print(f'Connection declined from {name}')
 
                 # Watch sent some other data, but no disconnect signal = watch accepted the connection
                 else:
                     if not self.client:
+                        print(f'Connected to {name}')
                         self.client = client
                         await self._connector.disconnect_devices(exclude=device)
-                        print(f'Connected to {name}')
-                    await callback(message)
+    
+                    # Parse and handle the actual data
+                    if self.client == client:
+                        await callback(message)
+
+                    # Connection accepted from a second (this) device at the same time -> cancel connection.
+                    # Generally this code path should not happen, but with an unlucky timing it's possible.
+                    else:
+                        await client.disconnect()
 
             return wrapped
 

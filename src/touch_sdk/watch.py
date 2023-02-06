@@ -39,6 +39,7 @@ class SensorFrame:
     orientation: Tuple[float]
     magnetic_field: Optional[Tuple[float]]
     magnetic_field_calibration: Optional[Tuple[float]]
+    timestamp: int
 
 
 class Hand(Enum):
@@ -229,7 +230,7 @@ class Watch:
         return (vec.x, vec.y, vec.z, vec.w)
 
     async def _on_protobuf(self, message):
-        self._proto_on_sensors(message.sensorFrames)
+        self._proto_on_sensors(message.sensorFrames, message.unixTime)
         self._proto_on_gestures(message.gestures)
         self._proto_on_button_events(message.buttonEvents)
         self._proto_on_touch_events(message.touchEvents)
@@ -238,7 +239,7 @@ class Watch:
         if message.HasField("info"):
             self._proto_on_info(message.info)
 
-    def _proto_on_sensors(self, frames):
+    def _proto_on_sensors(self, frames, timestamp):
         frame = frames[-1]
         sensor_frame = SensorFrame(
             acceleration=self._protovec3_to_tuple(frame.acc),
@@ -255,6 +256,7 @@ class Watch:
                 if frame.HasField("magCal")
                 else None
             ),
+            timestamp=timestamp
         )
         self.on_sensors(sensor_frame)
         self._on_arm_direction_change(sensor_frame)

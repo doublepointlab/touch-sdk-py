@@ -66,7 +66,20 @@ class Watch:
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
+        # In the situation when there are multiple Touch SDK compatible watches available,
+        # `_handle_connect` will be called for each. `client` will hold the value for one connection,
+        # matching `device` and `name`.
+        #
+        # `self.client` will only be assigned once the watch accepts the connection. This will also
+        # call `self._connector.disconnect_devices(exclude=device)`, so the remaining watches should
+        # not be able to accept the connection anymore - but if they do, the end result is likely
+        # just all watches disconnecting. Not ideal, but no errors.
+        #
+        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`), `self.client`
+        # will be deassigned (set to None), and the cycle can start again.
+
         client = self._connector.devices[device]
+
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()

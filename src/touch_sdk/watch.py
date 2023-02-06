@@ -85,18 +85,24 @@ class Watch:
                 message = Update()
                 message.ParseFromString(bytes(data))
 
-                if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    if not self.client:
-                        self.client = client
-                        await self._connector.disconnect_devices(exclude=device)
-                        print(f'Connected to {name}')
-                    await callback(message)
-                else:
+                # Watch sent a disconnect signal. Might be because the user pressed "no" from the
+                # connection dialog on the watch (was not connected to begin with), or because
+                # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
+                # self.client == client)
+                if any(s == Update.Signal.DISCONNECT for s in message.signals):
                     await client.disconnect()
                     if self.client == client:
                         self.client = None
                         print(f'Disconnected from {name}')
                         await self._connector.start_scanner()
+
+                # Watch sent some other data, but no disconnect signal = watch accepted the connection
+                else:
+                    if not self.client:
+                        self.client = client
+                        await self._connector.disconnect_devices(exclude=device)
+                        print(f'Connected to {name}')
+                    await callback(message)
 
             return wrapped
 

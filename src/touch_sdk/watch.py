@@ -87,16 +87,14 @@ class Watch:
 
             return wrapped
 
-        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+        try:
+            await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
-        # try:
-        #     await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
-
-        # except ValueError:
-        #     # Sometimes there is a race condition in BLEConnector and _handle_connect
-        #     # gets called twice for the same device. Calling client.start_notify twice
-        #     # will result in an error.
-        #     pass
+        except ValueError:
+            # Sometimes there is a race condition in BLEConnector and _handle_connect
+            # gets called twice for the same device. Calling client.start_notify twice
+            # will result in an error.
+            pass
 
     @staticmethod
     def _protovec2_to_tuple(vec):

@@ -52,6 +52,8 @@ class BLEConnector:
         await self.disconnect_devices()
 
     async def start_scanner(self):
+        """Start the scanner. This function should not be called before BLEConnector.run
+        or BLEConnector.start have been called."""
         # self.devices = {} # Reset found devices list
         await self.scanner.start()
         print('Scanning...')

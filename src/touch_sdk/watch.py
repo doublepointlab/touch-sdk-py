@@ -208,33 +208,37 @@ class Watch:
         return inputUpdate
 
 
-    def trigger_haptics(self, intensity, length):
-        inputUpdate = self._createHapticsUpdate(intensity, length)
+    def trigger_haptics(self, intensity: float, length: float):
+        """Trigger vibration haptics on the watch.
+
+        intensity: between 0 and 1
+        length: seconds"""
+        inputUpdate = self._createHapticsUpdate(intensity, length * 1000)
         self._write_input_characteristic(inputUpdate.SerializeToString())
 
-    def on_sensors(self, sensor_frame):
+    def on_sensors(self, sensor_frame: SensorFrame):
         """Callback when accelerometer, gyroscope, gravity and orientation
         is changes. Guaranteed to have all the four sensors in every update."""
 
     def on_tap(self):
         """Called when the tap gesture happens."""
 
-    def on_touch_down(self, x, y):
+    def on_touch_down(self, x: float, y: float):
         """Touch screen touch starts."""
 
-    def on_touch_up(self, x, y):
+    def on_touch_up(self, x: float, y: float):
         """Touch screen touch ends."""
 
-    def on_touch_move(self, x, y):
+    def on_touch_move(self, x: float, y: float):
         """Touch screen touch moves."""
 
-    def on_touch_cancel(self, x, y):
+    def on_touch_cancel(self, x: float, y: float):
         """Touch screen touch becomes a swipe gesture that goes to another view."""
 
-    def on_rotary(self, direction):
+    def on_rotary(self, direction: int):
         """Rotary dial around the watch screen is turned.
 
-        direction is +1 for clockwise, -1 for counterclockwise."""
+        direction: +1 for clockwise, -1 for counterclockwise."""
 
     def on_back_button(self):
         """Back button of the watch is pressed and released.

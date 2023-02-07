@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11watch_input.proto\"~\n\x0bHapticEvent\x12%\n\x04type\x18\x01 \x01(\x0e\x32\x17.HapticEvent.HapticType\x12\x11\n\tintensity\x18\x02 \x01(\x02\x12\x0e\n\x06length\x18\x03 \x01(\x05\"%\n\nHapticType\x12\n\n\x06\x43\x41NCEL\x10\x00\x12\x0b\n\x07ONESHOT\x10\x01\"0\n\x0bInputUpdate\x12!\n\x0bhapticEvent\x18\x01 \x01(\x0b\x32\x0c.HapticEventB\r\xaa\x02\nPsix.Protob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11watch_input.proto\"~\n\x0bHapticEvent\x12%\n\x04type\x18\x01 \x01(\x0e\x32\x17.HapticEvent.HapticType\x12\x11\n\tintensity\x18\x02 \x01(\x02\x12\x0e\n\x06length\x18\x03 \x01(\x05\"%\n\nHapticType\x12\n\n\x06\x43\x41NCEL\x10\x00\x12\x0b\n\x07ONESHOT\x10\x01\"L\n\nClientInfo\x12\x0f\n\x07\x61ppName\x18\x01 \x01(\t\x12\x12\n\ndeviceName\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\n\n\x02os\x18\x04 \x01(\t\"Q\n\x0bInputUpdate\x12!\n\x0bhapticEvent\x18\x01 \x01(\x0b\x32\x0c.HapticEvent\x12\x1f\n\nclientInfo\x18\x02 \x01(\x0b\x32\x0b.ClientInfoB\r\xaa\x02\nPsix.Protob\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'watch_input_pb2', globals())
@@ -25,6 +25,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _HAPTICEVENT._serialized_end=147
   _HAPTICEVENT_HAPTICTYPE._serialized_start=110
   _HAPTICEVENT_HAPTICTYPE._serialized_end=147
-  _INPUTUPDATE._serialized_start=149
-  _INPUTUPDATE._serialized_end=197
+  _CLIENTINFO._serialized_start=149
+  _CLIENTINFO._serialized_end=225
+  _INPUTUPDATE._serialized_start=227
+  _INPUTUPDATE._serialized_end=308
 # @@protoc_insertion_point(module_scope)

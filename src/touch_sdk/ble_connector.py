@@ -14,7 +14,8 @@ class BLEConnector:
     connection_handler gets called every time the scanner finds a new device.
     It should take parameters device and name.
 
-    If name_filter is present, only devices with that name will be connected to."""
+    If name_filter is present, BLEConnector will only connect to devices which contain
+    that string in their name."""
 
     def __init__(self, connection_handler, service_uuid, name_filter=None):
         """Creates a new instance of BLEConnector. Does not start the scanning."""

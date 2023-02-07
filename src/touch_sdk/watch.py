@@ -7,8 +7,6 @@ from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
-from touch_sdk.protobuf.watch_info_pb2 import Info
-
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
 
@@ -148,10 +146,11 @@ class Watch:
             await client.disconnect()
 
     async def _fetch_info(self):
-        data = await self.client.read_gatt_char(PROTOBUF_INFO)
-        info = Info()
-        info.ParseFromString(bytes(data))
-        self.hand = Hand(info.hand)
+        data = await self.client.read_gatt_char(PROTOBUF_OUTPUT)
+        update = Update()
+        update.ParseFromString(bytes(data))
+        if update.HasField("info"):
+            self.hand = Hand(update.info.hand)
 
     @staticmethod
     def _protovec2_to_tuple(vec):

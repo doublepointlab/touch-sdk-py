@@ -112,7 +112,7 @@ class Watch:
                         print(f'Connected to {name}')
                         self.client = client
                         await self._connector.disconnect_devices(exclude=device)
-    
+
                     # Parse and handle the actual data
                     if self.client == client:
                         await callback(message)

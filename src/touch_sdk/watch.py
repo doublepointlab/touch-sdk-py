@@ -196,16 +196,16 @@ class Watch:
             await self.client.write_gatt_char(characteristic, data)
 
     @staticmethod
-    def _createHapticsUpdate(intensity, length):
-        clampedIntensity = min(max(intensity, 0.0), 1.0)
-        clampedLength = min(max(int(length), 0), 5000)
-        hapticEvent = HapticEvent()
-        hapticEvent.type = HapticEvent.HapticType.ONESHOT
-        hapticEvent.length = clampedLength
-        hapticEvent.intensity = clampedIntensity
-        inputUpdate = InputUpdate()
-        inputUpdate.hapticEvent.CopyFrom(hapticEvent)
-        return inputUpdate
+    def _create_haptics_update(intensity, length):
+        clamped_intensity = min(max(intensity, 0.0), 1.0)
+        clamped_length = min(max(int(length), 0), 5000)
+        haptic_event = HapticEvent()
+        haptic_event.type = HapticEvent.HapticType.ONESHOT
+        haptic_event.length = clamped_length
+        haptic_event.intensity = clamped_intensity
+        input_update = InputUpdate()
+        input_update.hapticEvent.CopyFrom(haptic_event)
+        return input_update
 
 
     def trigger_haptics(self, intensity: float, length: float):
@@ -213,8 +213,8 @@ class Watch:
 
         intensity: between 0 and 1
         length: seconds"""
-        inputUpdate = self._createHapticsUpdate(intensity, length * 1000)
-        self._write_input_characteristic(inputUpdate.SerializeToString())
+        input_update = self._create_haptics_update(intensity, length * 1000)
+        self._write_input_characteristic(input_update.SerializeToString())
 
     def on_sensors(self, sensor_frame: SensorFrame):
         """Callback when accelerometer, gyroscope, gravity and orientation

@@ -1,7 +1,7 @@
 # Touch SDK py
 
 ![PyPI](https://img.shields.io/pypi/v/touch-sdk)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/touch-sdk)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/touch-sdk)
 ![PyPI - License](https://img.shields.io/pypi/l/touch-sdk)
 ![Discord](https://img.shields.io/discord/869474617729875998)
 

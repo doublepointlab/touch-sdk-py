@@ -47,7 +47,6 @@ class Watch:
             INTERACTION_SERVICE,
             name_filter
         )
-        self.connected = False
         self.client = None
 
     def start(self):
@@ -67,25 +66,65 @@ class Watch:
         self._connector.stop()
 
     async def _handle_connect(self, device, name):
-        self.client = self._connector.devices[device]
+        # In the situation when there are multiple Touch SDK compatible watches available,
+        # `_handle_connect` will be called for each. `client` will hold the value for one connection,
+        # matching `device` and `name`.
+        #
+        # `self.client` will only be assigned once the watch accepts the connection. This will also
+        # call `self._connector.disconnect_devices(exclude=device)`, so the remaining watches should
+        # not be able to accept the connection anymore - but if they do, the end result is likely
+        # just all watches disconnecting. Not ideal, but no errors.
+        #
+        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`), `self.client`
+        # will be deassigned (set to None), and the cycle can start again.
+
+        client = self._connector.devices[device]
+
         def wrap_protobuf(callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
 
-                if all(s != Update.Signal.DISCONNECT for s in message.signals):
-                    if not self.connected:
-                        self.connected = True
-                        await self._connector.disconnect_devices(exclude=device)
-                        print(f'Connected to {name}')
-                    await callback(message)
+                # Watch sent a disconnect signal. Might be because the user pressed "no" from the
+                # connection dialog on the watch (was not connected to begin with), or because
+                # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
+                # self.client == client)
+                if any(s == Update.Signal.DISCONNECT for s in message.signals):
+
+                    # As a GATT server, the watch can't actually disconnect on its own.
+                    # However, they want this connection to be ended, so the client side disconnects.
+                    await client.disconnect()
+
+                    # This client had accepted the connection before -> "disconnected"
+                    if self.client == client:
+                        print(f'Disconnected from {name}')
+                        self.client = None
+                        await self._connector.start_scanner()
+
+                    # This client had NOT accepted the connection before -> "declined"
+                    else:
+                        print(f'Connection declined from {name}')
+
+                # Watch sent some other data, but no disconnect signal = watch accepted the connection
                 else:
-                    await self.client.disconnect()
+                    if not self.client:
+                        print(f'Connected to {name}')
+                        self.client = client
+                        await self._connector.disconnect_devices(exclude=device)
+    
+                    # Parse and handle the actual data
+                    if self.client == client:
+                        await callback(message)
+
+                    # Connection accepted from a second (this) device at the same time -> cancel connection.
+                    # Generally this code path should not happen, but with an unlucky timing it's possible.
+                    else:
+                        await client.disconnect()
 
             return wrapped
 
         try:
-            await self.client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
 
         except ValueError:
             # Sometimes there is a race condition in BLEConnector and _handle_connect
@@ -149,7 +188,11 @@ class Watch:
 
     def _write_input_characteristic(self, data):
         loop = asyncio.get_running_loop()
-        loop.create_task(self.client.write_gatt_char(PROTOBUF_INPUT, data))
+        loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data))
+
+    async def _async_write_input_characteristic(self, characteristic, data):
+        if self.client:
+            await self.client.write_gatt_char(characteristic, data)
 
     @staticmethod
     def _createHapticsUpdate(intensity, length):

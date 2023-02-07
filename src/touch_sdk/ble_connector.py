@@ -43,14 +43,19 @@ class BLEConnector:
         self.scanner = BleakScanner(
             self._detection_callback, service_uuids=[self.service_uuid]
         )
-        await self.scanner.start()
-        print('Scanning...')
+        await self.start_scanner()
         while True:
             await asyncio.sleep(1)
 
     async def stop(self):
         """Stops the scanner and disconnects all clients."""
         await self.disconnect_devices()
+
+    async def start_scanner(self):
+        # self.devices = {} # Reset found devices list
+        await self.scanner.start()
+        print('Scanning...')
+
 
     async def _detection_callback(self, device, advertisement_data):
         name = (
@@ -79,7 +84,7 @@ class BLEConnector:
             try:
                 await client.connect()
                 await self.handle_connect(device, name)
-            except asyncio.exceptions.CancelledError:
+            except (asyncio.exceptions.CancelledError, asyncio.exceptions.TimeoutError):
                 print("Connection cancelled from", name)
             except BleakError:
                 pass

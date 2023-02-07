@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from enum import Enum
 import asyncio
 
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
+from touch_sdk.protobuf.watch_info_pb2 import Info
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -18,6 +20,7 @@ INTERACTION_SERVICE = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
 PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
+PROTOBUF_INFO = "f9d60373-5325-4c64-b874-a68c7c555bad"
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,10 @@ class SensorFrame:
     angular_velocity: tuple[float]
     orientation: tuple[float]
 
+class Hand(Enum):
+    NONE = 0
+    RIGHT = 1
+    LEFT = 2
 
 class Watch:
     """Scans Touch SDK compatible Bluetooth LE devices and connects to all of them.
@@ -48,6 +55,7 @@ class Watch:
             name_filter
         )
         self.client = None
+        self.hand = Hand.NONE
 
     def start(self):
         """Blocking event loop that starts the Bluetooth scanner
@@ -90,36 +98,11 @@ class Watch:
                 # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
                 # self.client == client)
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
-
-                    # As a GATT server, the watch can't actually disconnect on its own.
-                    # However, they want this connection to be ended, so the client side disconnects.
-                    await client.disconnect()
-
-                    # This client had accepted the connection before -> "disconnected"
-                    if self.client == client:
-                        print(f'Disconnected from {name}')
-                        self.client = None
-                        await self._connector.start_scanner()
-
-                    # This client had NOT accepted the connection before -> "declined"
-                    else:
-                        print(f'Connection declined from {name}')
+                    await self._on_disconnect_signal(client, name)
 
                 # Watch sent some other data, but no disconnect signal = watch accepted the connection
                 else:
-                    if not self.client:
-                        print(f'Connected to {name}')
-                        self.client = client
-                        await self._connector.disconnect_devices(exclude=device)
-    
-                    # Parse and handle the actual data
-                    if self.client == client:
-                        await callback(message)
-
-                    # Connection accepted from a second (this) device at the same time -> cancel connection.
-                    # Generally this code path should not happen, but with an unlucky timing it's possible.
-                    else:
-                        await client.disconnect()
+                    await self._on_data(client, name, device, callback, message)
 
             return wrapped
 
@@ -131,6 +114,43 @@ class Watch:
             # gets called twice for the same device. Calling client.start_notify twice
             # will result in an error.
             pass
+
+    async def _on_disconnect_signal(self, client, name):
+        # As a GATT server, the watch can't actually disconnect on its own.
+        # However, they want this connection to be ended, so the client side disconnects.
+        await client.disconnect()
+
+        # This client had accepted the connection before -> "disconnected"
+        if self.client == client:
+            print(f'Disconnected from {name}')
+            self.client = None
+            await self._connector.start_scanner()
+
+        # This client had NOT accepted the connection before -> "declined"
+        else:
+            print(f'Connection declined from {name}')
+
+    async def _on_data(self, client, name, device, callback, message):
+        if not self.client:
+            print(f'Connected to {name}')
+            self.client = client
+            await self._connector.disconnect_devices(exclude=device)
+            await self._fetch_info()
+
+        # Parse and handle the actual data
+        if self.client == client:
+            await callback(message)
+
+        # Connection accepted from a second (this) device at the same time -> cancel connection.
+        # Generally this code path should not happen, but with an unlucky timing it's possible.
+        else:
+            await client.disconnect()
+
+    async def _fetch_info(self):
+        data = await self.client.read_gatt_char(PROTOBUF_INFO)
+        info = Info()
+        info.ParseFromString(bytes(data))
+        self.hand = Hand(info.hand)
 
     @staticmethod
     def _protovec2_to_tuple(vec):

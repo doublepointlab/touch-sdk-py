@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import asyncio
+import typing
 
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
@@ -26,10 +27,10 @@ PROTOBUF_INFO = "f9d60373-5325-4c64-b874-a68c7c555bad"
 @dataclass(frozen=True)
 class SensorFrame:
     """A Frozen container class for values of all streamable Touch SDK sensors."""
-    acceleration: tuple[float]
-    gravity: tuple[float]
-    angular_velocity: tuple[float]
-    orientation: tuple[float]
+    acceleration: typing.Tuple[float]
+    gravity: typing.Tuple[float]
+    angular_velocity: typing.Tuple[float]
+    orientation: typing.Tuple[float]
 
 class Hand(Enum):
     NONE = 0

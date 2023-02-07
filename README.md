@@ -1,7 +1,7 @@
 # Touch SDK py
 
 ![PyPI](https://img.shields.io/pypi/v/touch-sdk)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/touch-sdk)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/touch-sdk)
 ![PyPI - License](https://img.shields.io/pypi/l/touch-sdk)
 ![Discord](https://img.shields.io/discord/869474617729875998)
 
@@ -85,6 +85,9 @@ Called when the back button is pressed and released. Wear OS does not support se
 
 ### Haptics
 The `trigger_haptics(intensity, length)` method can be used to initiate one-shot haptic effects on the watch. For example, to drive the haptics motor for 300 ms at 100% intensity on `watch`, call `watch.trigger_haptics(1.0, 300)`.
+
+## Unexplainable bugs
+Sometimes turning your device's Bluetooth off and on again fixes problems – this has been observed on Linux, Mac and Windows. This is unideal, but those error states are hard to reproduce and thus hard to fix.
 
 ## Pylint
 ```sh

@@ -68,16 +68,17 @@ class Watch:
 
     async def _handle_connect(self, device, name):
         # In the situation when there are multiple Touch SDK compatible watches available,
-        # `_handle_connect` will be called for each. `client` will hold the value for one connection,
-        # matching `device` and `name`.
+        # `_handle_connect` will be called for each. `client` will hold the value for one
+        # connection, matching `device` and `name`.
         #
-        # `self.client` will only be assigned once the watch accepts the connection. This will also
-        # call `self._connector.disconnect_devices(exclude=device)`, so the remaining watches should
-        # not be able to accept the connection anymore - but if they do, the end result is likely
-        # just all watches disconnecting. Not ideal, but no errors.
+        # `self.client` will only be assigned once the watch accepts the connection. This
+        # will also call `self._connector.disconnect_devices(exclude=device)`, so the
+        # remaining watches should not be able to accept the connection anymore - but if
+        # they do, the end result is likely just all watches disconnecting. Not ideal,
+        # but no errors.
         #
-        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`), `self.client`
-        # will be deassigned (set to None), and the cycle can start again.
+        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`),
+        # `self.client` will be deassigned (set to None), and the cycle can start again.
 
         client = self._connector.devices[device]
 
@@ -86,14 +87,15 @@ class Watch:
                 message = Update()
                 message.ParseFromString(bytes(data))
 
-                # Watch sent a disconnect signal. Might be because the user pressed "no" from the
-                # connection dialog on the watch (was not connected to begin with), or because
-                # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
-                # self.client == client)
+                # Watch sent a disconnect signal. Might be because the user pressed "no"
+                # from the connection dialog on the watch (was not connected to begin with),
+                # or because the watch app is exiting / user pressed "forget devices" (was
+                # connected, a.k.a. self.client == client)
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
 
                     # As a GATT server, the watch can't actually disconnect on its own.
-                    # However, they want this connection to be ended, so the client side disconnects.
+                    # However, they want this connection to be ended, so the client side
+                    # disconnects.
                     await client.disconnect()
 
                     # This client had accepted the connection before -> "disconnected"
@@ -106,7 +108,8 @@ class Watch:
                     else:
                         print(f'Connection declined from {name}')
 
-                # Watch sent some other data, but no disconnect signal = watch accepted the connection
+                # Watch sent some other data, but no disconnect signal = watch accepted
+                # the connection
                 else:
                     if not self.client:
                         print(f'Connected to {name}')
@@ -117,8 +120,9 @@ class Watch:
                     if self.client == client:
                         await callback(message)
 
-                    # Connection accepted from a second (this) device at the same time -> cancel connection.
-                    # Generally this code path should not happen, but with an unlucky timing it's possible.
+                    # Connection accepted from a second (this) device at the same time
+                    # -> cancel connection. Generally this code path should not happen,
+                    # but with an unlucky timing it's possible.
                     else:
                         await client.disconnect()
 

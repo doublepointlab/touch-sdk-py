@@ -11,7 +11,7 @@ authors = [
     { name="Port 6", email="developer@port6.io" },
 ]
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = ["bluetooth"]
 classifiers = [
     "Development Status :: 3 - Alpha",

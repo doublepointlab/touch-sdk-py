@@ -171,6 +171,9 @@ class Watch:
         self._proto_on_touch_events(message.touchEvents)
         self._proto_on_rotary_events(message.rotaryEvents)
 
+        if message.HasField('info'):
+            self._proto_on_info(message.info)
+
     def _proto_on_sensors(self, frames):
         frame = frames[-1]
         self.on_sensors(
@@ -205,6 +208,9 @@ class Watch:
     def _proto_on_rotary_events(self, rotary_events):
         for rotary in rotary_events:
             self.on_rotary(-rotary.step)
+
+    def _proto_on_info(self, info):
+            self.hand = Hand(info.hand)
 
     def _write_input_characteristic(self, data):
         loop = asyncio.get_running_loop()

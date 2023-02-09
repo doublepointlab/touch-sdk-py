@@ -110,8 +110,8 @@ class Watch:
             return wrapped
 
         try:
-            await self._send_client_info(client)
             await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await self._send_client_info(client)
 
         except ValueError:
             # Sometimes there is a race condition in BLEConnector and _handle_connect

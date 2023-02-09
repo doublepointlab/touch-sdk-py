@@ -1,6 +1,6 @@
 from touch_sdk.watch import Watch
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 __doc__ = """Connects to Port 6 Touch SDK compatible Bluetooth devices
 

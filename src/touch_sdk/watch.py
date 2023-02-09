@@ -9,7 +9,6 @@ from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientInfo
-from touch_sdk.protobuf.watch_info_pb2 import Info
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -23,7 +22,6 @@ INTERACTION_SERVICE = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
 PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
 PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
-PROTOBUF_INFO = "f9d60373-5325-4c64-b874-a68c7c555bad"
 
 
 @dataclass(frozen=True)
@@ -160,10 +158,11 @@ class Watch:
             await client.disconnect()
 
     async def _fetch_info(self):
-        data = await self.client.read_gatt_char(PROTOBUF_INFO)
-        info = Info()
-        info.ParseFromString(bytes(data))
-        self.hand = Hand(info.hand)
+        data = await self.client.read_gatt_char(PROTOBUF_OUTPUT)
+        update = Update()
+        update.ParseFromString(bytes(data))
+        if update.HasField("info"):
+            self.hand = Hand(update.info.hand)
 
     @staticmethod
     def _protovec2_to_tuple(vec):
@@ -183,6 +182,9 @@ class Watch:
         self._proto_on_button_events(message.buttonEvents)
         self._proto_on_touch_events(message.touchEvents)
         self._proto_on_rotary_events(message.rotaryEvents)
+
+        if message.HasField('info'):
+            self._proto_on_info(message.info)
 
     def _proto_on_sensors(self, frames):
         frame = frames[-1]
@@ -218,6 +220,9 @@ class Watch:
     def _proto_on_rotary_events(self, rotary_events):
         for rotary in rotary_events:
             self.on_rotary(-rotary.step)
+
+    def _proto_on_info(self, info):
+            self.hand = Hand(info.hand)
 
     def _write_input_characteristic(self, data):
         loop = asyncio.get_running_loop()

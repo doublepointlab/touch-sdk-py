@@ -121,13 +121,13 @@ class Watch:
             pass
 
     async def _send_client_info(self, client):
-        clientInfo = ClientInfo()
-        clientInfo.appName = sys.argv[0]
-        clientInfo.deviceName = platform.node()
-        clientInfo.os = platform.system()
-        inputUpdate = InputUpdate()
-        inputUpdate.clientInfo.CopyFrom(clientInfo)
-        await client.write_gatt_char(PROTOBUF_INPUT, inputUpdate.SerializeToString())
+        client_info = ClientInfo()
+        client_info.appName = sys.argv[0]
+        client_info.deviceName = platform.node()
+        client_info.os = platform.system()
+        input_update = InputUpdate()
+        input_update.clientInfo.CopyFrom(client_info)
+        await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
 
     async def _on_disconnect_signal(self, client, name):
         # As a GATT server, the watch can't actually disconnect on its own.

@@ -2,11 +2,14 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 import typing
+import sys
+import platform
 
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
-from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
+from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientInfo
+
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
 
@@ -109,12 +112,22 @@ class Watch:
 
         try:
             await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await self._send_client_info(client)
 
         except ValueError:
             # Sometimes there is a race condition in BLEConnector and _handle_connect
             # gets called twice for the same device. Calling client.start_notify twice
             # will result in an error.
             pass
+
+    async def _send_client_info(self, client):
+        clientInfo = ClientInfo()
+        clientInfo.appName = sys.argv[0]
+        clientInfo.deviceName = platform.node()
+        clientInfo.os = platform.system()
+        inputUpdate = InputUpdate()
+        inputUpdate.clientInfo.CopyFrom(clientInfo)
+        await client.write_gatt_char(PROTOBUF_INPUT, inputUpdate.SerializeToString())
 
     async def _on_disconnect_signal(self, client, name):
         # As a GATT server, the watch can't actually disconnect on its own.

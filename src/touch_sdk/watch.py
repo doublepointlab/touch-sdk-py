@@ -249,12 +249,12 @@ class Watch:
         return input_update
 
 
-    def trigger_haptics(self, intensity: float, length: float):
+    def trigger_haptics(self, intensity: float, duration_ms: int):
         """Trigger vibration haptics on the watch.
 
         intensity: between 0 and 1
-        length: seconds"""
-        input_update = self._create_haptics_update(intensity, length * 1000)
+        duration_ms: between 0 and 5000"""
+        input_update = self._create_haptics_update(intensity, duration_ms)
         self._write_input_characteristic(input_update.SerializeToString())
 
     def on_sensors(self, sensor_frame: SensorFrame):

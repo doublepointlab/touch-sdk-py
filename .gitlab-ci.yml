@@ -2,7 +2,8 @@ pylint:
   image: python:3.9
   script:
     - pip install pylint
-    - pylint src
+    - pip install .
+    - pylint src --rcfile=.pylintrc
   allow_failure: true # only warn about linter errors, no hard enforcement
   artifacts:
     paths:

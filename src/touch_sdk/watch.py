@@ -33,6 +33,7 @@ class SensorFrame:
     orientation: typing.Tuple[float]
 
 class Hand(Enum):
+    """Which hand the watch is worn on."""
     NONE = 0
     RIGHT = 1
     LEFT = 2
@@ -76,16 +77,17 @@ class Watch:
 
     async def _handle_connect(self, device, name):
         # In the situation when there are multiple Touch SDK compatible watches available,
-        # `_handle_connect` will be called for each. `client` will hold the value for one connection,
-        # matching `device` and `name`.
+        # `_handle_connect` will be called for each. `client` will hold the value for one
+        # connection, matching `device` and `name`.
         #
-        # `self.client` will only be assigned once the watch accepts the connection. This will also
-        # call `self._connector.disconnect_devices(exclude=device)`, so the remaining watches should
-        # not be able to accept the connection anymore - but if they do, the end result is likely
-        # just all watches disconnecting. Not ideal, but no errors.
+        # `self.client` will only be assigned once the watch accepts the connection. This
+        # will also call `self._connector.disconnect_devices(exclude=device)`, so the
+        # remaining watches should not be able to accept the connection anymore - but if
+        # they do, the end result is likely just all watches disconnecting. Not ideal,
+        # but no errors.
         #
-        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`), `self.client`
-        # will be deassigned (set to None), and the cycle can start again.
+        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`),
+        # `self.client` will be deassigned (set to None), and the cycle can start again.
 
         client = self._connector.devices[device]
 
@@ -94,14 +96,15 @@ class Watch:
                 message = Update()
                 message.ParseFromString(bytes(data))
 
-                # Watch sent a disconnect signal. Might be because the user pressed "no" from the
-                # connection dialog on the watch (was not connected to begin with), or because
-                # the watch app is exiting / user pressed "forget devices" (was connected, a.k.a.
-                # self.client == client)
+                # Watch sent a disconnect signal. Might be because the user pressed "no"
+                # from the connection dialog on the watch (was not connected to begin with),
+                # or because the watch app is exiting / user pressed "forget devices" (was
+                # connected, a.k.a. self.client == client)
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
                     await self._on_disconnect_signal(client, name)
 
-                # Watch sent some other data, but no disconnect signal = watch accepted the connection
+                # Watch sent some other data, but no disconnect signal = watch accepted
+                # the connection
                 else:
                     await self._on_data(client, name, device, callback, message)
 
@@ -118,13 +121,13 @@ class Watch:
             pass
 
     async def _send_client_info(self, client):
-        clientInfo = ClientInfo()
-        clientInfo.appName = sys.argv[0]
-        clientInfo.deviceName = platform.node()
-        clientInfo.os = platform.system()
-        inputUpdate = InputUpdate()
-        inputUpdate.clientInfo.CopyFrom(clientInfo)
-        await client.write_gatt_char(PROTOBUF_INPUT, inputUpdate.SerializeToString())
+        client_info = ClientInfo()
+        client_info.appName = sys.argv[0]
+        client_info.deviceName = platform.node()
+        client_info.os = platform.system()
+        input_update = InputUpdate()
+        input_update.clientInfo.CopyFrom(client_info)
+        await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
 
     async def _on_disconnect_signal(self, client, name):
         # As a GATT server, the watch can't actually disconnect on its own.
@@ -152,8 +155,9 @@ class Watch:
         if self.client == client:
             await callback(message)
 
-        # Connection accepted from a second (this) device at the same time -> cancel connection.
-        # Generally this code path should not happen, but with an unlucky timing it's possible.
+        # Connection accepted from a second (this) device at the same time -> cancel
+        # connection. Generally this code path should not happen, but with an unlucky
+        # timing it's possible.
         else:
             await client.disconnect()
 
@@ -222,7 +226,7 @@ class Watch:
             self.on_rotary(-rotary.step)
 
     def _proto_on_info(self, info):
-            self.hand = Hand(info.hand)
+        self.hand = Hand(info.hand)
 
     def _write_input_characteristic(self, data):
         loop = asyncio.get_running_loop()
@@ -233,45 +237,49 @@ class Watch:
             await self.client.write_gatt_char(characteristic, data)
 
     @staticmethod
-    def _createHapticsUpdate(intensity, length):
-        clampedIntensity = min(max(intensity, 0.0), 1.0)
-        clampedLength = min(max(int(length), 0), 5000)
-        hapticEvent = HapticEvent()
-        hapticEvent.type = HapticEvent.HapticType.ONESHOT
-        hapticEvent.length = clampedLength
-        hapticEvent.intensity = clampedIntensity
-        inputUpdate = InputUpdate()
-        inputUpdate.hapticEvent.CopyFrom(hapticEvent)
-        return inputUpdate
+    def _create_haptics_update(intensity, length):
+        clamped_intensity = min(max(intensity, 0.0), 1.0)
+        clamped_length = min(max(int(length), 0), 5000)
+        haptic_event = HapticEvent()
+        haptic_event.type = HapticEvent.HapticType.ONESHOT
+        haptic_event.length = clamped_length
+        haptic_event.intensity = clamped_intensity
+        input_update = InputUpdate()
+        input_update.hapticEvent.CopyFrom(haptic_event)
+        return input_update
 
 
-    def trigger_haptics(self, intensity, length):
-        inputUpdate = self._createHapticsUpdate(intensity, length)
-        self._write_input_characteristic(inputUpdate.SerializeToString())
+    def trigger_haptics(self, intensity: float, duration_ms: int):
+        """Trigger vibration haptics on the watch.
 
-    def on_sensors(self, sensor_frame):
+        intensity: between 0 and 1
+        duration_ms: between 0 and 5000"""
+        input_update = self._create_haptics_update(intensity, duration_ms)
+        self._write_input_characteristic(input_update.SerializeToString())
+
+    def on_sensors(self, sensor_frame: SensorFrame):
         """Callback when accelerometer, gyroscope, gravity and orientation
         is changes. Guaranteed to have all the four sensors in every update."""
 
     def on_tap(self):
         """Called when the tap gesture happens."""
 
-    def on_touch_down(self, x, y):
+    def on_touch_down(self, x: float, y: float):
         """Touch screen touch starts."""
 
-    def on_touch_up(self, x, y):
+    def on_touch_up(self, x: float, y: float):
         """Touch screen touch ends."""
 
-    def on_touch_move(self, x, y):
+    def on_touch_move(self, x: float, y: float):
         """Touch screen touch moves."""
 
-    def on_touch_cancel(self, x, y):
+    def on_touch_cancel(self, x: float, y: float):
         """Touch screen touch becomes a swipe gesture that goes to another view."""
 
-    def on_rotary(self, direction):
+    def on_rotary(self, direction: int):
         """Rotary dial around the watch screen is turned.
 
-        direction is +1 for clockwise, -1 for counterclockwise."""
+        direction: +1 for clockwise, -1 for counterclockwise."""
 
     def on_back_button(self):
         """Back button of the watch is pressed and released.

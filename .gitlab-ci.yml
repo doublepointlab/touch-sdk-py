@@ -1,0 +1,9 @@
+pylint:
+  image: python:3.9
+  script:
+    - pip install pylint
+    - pylint src
+  allow_failure: true # only warn about linter errors, no hard enforcement
+  artifacts:
+    paths:
+      - pylint_report.txt # optional, stores the Pylint report as an artifact

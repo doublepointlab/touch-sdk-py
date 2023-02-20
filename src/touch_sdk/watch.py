@@ -192,14 +192,14 @@ class Watch:
 
     def _proto_on_sensors(self, frames):
         frame = frames[-1]
-        self.on_sensors(
-            SensorFrame(
-                acceleration=self._protovec3_to_tuple(frame.acc),
-                gravity=self._protovec3_to_tuple(frame.grav),
-                angular_velocity=self._protovec3_to_tuple(frame.gyro),
-                orientation=self._protoquat_to_tuple(frame.quat),
-            )
+        sensor_frame = SensorFrame(
+            acceleration=self._protovec3_to_tuple(frame.acc),
+            gravity=self._protovec3_to_tuple(frame.grav),
+            angular_velocity=self._protovec3_to_tuple(frame.gyro),
+            orientation=self._protoquat_to_tuple(frame.quat),
         )
+        self.on_sensors(sensor_frame)
+        self._on_arm_direction_change(sensor_frame)
 
     def _proto_on_gestures(self, gestures):
         if any(g.type == Gesture.GestureType.TAP for g in gestures):
@@ -248,6 +248,22 @@ class Watch:
         input_update.hapticEvent.CopyFrom(haptic_event)
         return input_update
 
+    def _on_arm_direction_change(self, sensor_frame: SensorFrame):
+        def normalize(vector):
+            length = sum(x*x for x in vector) ** 0.5
+            return [x/length for x in vector]
+
+        grav = normalize(sensor_frame.gravity)
+
+        av_x = -sensor_frame.angular_velocity[2] # right = +
+        av_y = -sensor_frame.angular_velocity[1] # down = +
+
+        handedness_scale = -1 if self.hand == Hand.LEFT else 1
+
+        delta_x = av_x * grav[2] + av_y * grav[1]
+        delta_y = handedness_scale * (av_y * grav[2] - av_x * grav[1])
+
+        self.on_arm_direction_change(delta_x, delta_y)
 
     def trigger_haptics(self, intensity: float, duration_ms: int):
         """Trigger vibration haptics on the watch.
@@ -260,6 +276,9 @@ class Watch:
     def on_sensors(self, sensor_frame: SensorFrame):
         """Callback when accelerometer, gyroscope, gravity and orientation
         is changes. Guaranteed to have all the four sensors in every update."""
+
+    def on_arm_direction_change(self, delta_x: float, delta_y: float):
+        """Gyroscope-based raycasting output. Called after sensor updates."""
 
     def on_tap(self):
         """Called when the tap gesture happens."""

@@ -203,10 +203,10 @@ class Watch:
             angular_velocity=self._protovec3_to_tuple(frame.gyro),
             orientation=self._protoquat_to_tuple(frame.quat),
             magnetic_field=self._protovec3_to_tuple(frame.mag)
-            if frame.hasField("mag")
+            if frame.HasField("mag")
             else None,
             magnetic_field_calibration=self._protovec3_to_tuple(frame.magCal)
-            if frame.hasField("magCal")
+            if frame.HasField("magCal")
             else None,
         )
         self.on_sensors(sensor_frame)

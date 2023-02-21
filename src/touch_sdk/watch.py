@@ -202,12 +202,16 @@ class Watch:
             gravity=self._protovec3_to_tuple(frame.grav),
             angular_velocity=self._protovec3_to_tuple(frame.gyro),
             orientation=self._protoquat_to_tuple(frame.quat),
-            magnetic_field=self._protovec3_to_tuple(frame.mag)
-            if frame.HasField("mag")
-            else None,
-            magnetic_field_calibration=self._protovec3_to_tuple(frame.magCal)
-            if frame.HasField("magCal")
-            else None,
+            magnetic_field=(
+                self._protovec3_to_tuple(frame.mag)
+                if frame.HasField("mag")
+                else None
+            ),
+            magnetic_field_calibration=(
+                self._protovec3_to_tuple(frame.magCal)
+                if frame.HasField("magCal")
+                else None
+            ),
         )
         self.on_sensors(sensor_frame)
         self._on_arm_direction_change(sensor_frame)

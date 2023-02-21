@@ -285,8 +285,9 @@ class Watch:
         self._write_input_characteristic(input_update.SerializeToString())
 
     def on_sensors(self, sensor_frame: SensorFrame):
-        """Callback when accelerometer, gyroscope, gravity and orientation
-        is changes. Guaranteed to have all the four sensors in every update."""
+        """Callback when accelerometer, gyroscope, gravity, orientation, and
+        magnetic field are changed. Guaranteed to have values for everything but
+        magnetic field information in every update."""
 
     def on_arm_direction_change(self, delta_x: float, delta_y: float):
         """Gyroscope-based raycasting output. Called after sensor updates."""

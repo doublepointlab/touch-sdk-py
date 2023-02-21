@@ -48,10 +48,12 @@ def on_tap(self):
 ### Sensors
 ```python
 def on_sensors(self, sensors):
-    print(sensors.acceleration) # x, y, z
-    print(sensors.gravity) # x, y, z
-    print(sensors.angular_velocity) # x, y, z
-    print(sensors.orientation) # x, y, z, w
+    print(sensors.acceleration) # (x, y, z)
+    print(sensors.gravity) # (x, y, z)
+    print(sensors.angular_velocity) # (x, y, z)
+    print(sensors.orientation) # (x, y, z, w)
+    print(sensors.magnetic_field) # (x, y, z), or None if unavailable
+    print(sensors.magnetic_field_calibration) # (x, y, z), or None if unavailable
 ```
 
 ### Touch screen

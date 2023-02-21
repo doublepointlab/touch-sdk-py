@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import asyncio
-import typing
+from typing import Tuple, Optional
 import sys
 import platform
 
@@ -27,10 +27,12 @@ PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
 @dataclass(frozen=True)
 class SensorFrame:
     """A Frozen container class for values of all streamable Touch SDK sensors."""
-    acceleration: typing.Tuple[float]
-    gravity: typing.Tuple[float]
-    angular_velocity: typing.Tuple[float]
-    orientation: typing.Tuple[float]
+    acceleration: Tuple[float]
+    gravity: Tuple[float]
+    angular_velocity: Tuple[float]
+    orientation: Tuple[float]
+    magnetic_field: Optional[Tuple[float]]
+    magnetic_field_calibration: Optional[Tuple[float]]
 
 class Hand(Enum):
     """Which hand the watch is worn on."""
@@ -197,6 +199,8 @@ class Watch:
             gravity=self._protovec3_to_tuple(frame.grav),
             angular_velocity=self._protovec3_to_tuple(frame.gyro),
             orientation=self._protoquat_to_tuple(frame.quat),
+            magnetic_field=self._protovec3_to_tuple(frame.mag),
+            magnetic_field_calibration=self._protovec3_to_tuple(frame.magCal)
         )
         self.on_sensors(sensor_frame)
         self._on_arm_direction_change(sensor_frame)

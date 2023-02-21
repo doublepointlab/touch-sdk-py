@@ -6,6 +6,7 @@ import sys
 import platform
 
 from touch_sdk.ble_connector import BLEConnector
+
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientInfo
@@ -27,6 +28,7 @@ PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
 @dataclass(frozen=True)
 class SensorFrame:
     """A Frozen container class for values of all streamable Touch SDK sensors."""
+
     acceleration: Tuple[float]
     gravity: Tuple[float]
     angular_velocity: Tuple[float]
@@ -34,11 +36,14 @@ class SensorFrame:
     magnetic_field: Optional[Tuple[float]]
     magnetic_field_calibration: Optional[Tuple[float]]
 
+
 class Hand(Enum):
     """Which hand the watch is worn on."""
+
     NONE = 0
     RIGHT = 1
     LEFT = 2
+
 
 class Watch:
     """Scans Touch SDK compatible Bluetooth LE devices and connects to all of them.
@@ -54,9 +59,7 @@ class Watch:
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
         self._connector = BLEConnector(
-            self._handle_connect,
-            INTERACTION_SERVICE,
-            name_filter
+            self._handle_connect, INTERACTION_SERVICE, name_filter
         )
         self.client = None
         self.hand = Hand.NONE
@@ -138,17 +141,17 @@ class Watch:
 
         # This client had accepted the connection before -> "disconnected"
         if self.client == client:
-            print(f'Disconnected from {name}')
+            print(f"Disconnected from {name}")
             self.client = None
             await self._connector.start_scanner()
 
         # This client had NOT accepted the connection before -> "declined"
         else:
-            print(f'Connection declined from {name}')
+            print(f"Connection declined from {name}")
 
     async def _on_data(self, client, name, device, callback, message):
         if not self.client:
-            print(f'Connected to {name}')
+            print(f"Connected to {name}")
             self.client = client
             await self._connector.disconnect_devices(exclude=device)
             await self._fetch_info()
@@ -189,7 +192,7 @@ class Watch:
         self._proto_on_touch_events(message.touchEvents)
         self._proto_on_rotary_events(message.rotaryEvents)
 
-        if message.HasField('info'):
+        if message.HasField("info"):
             self._proto_on_info(message.info)
 
     def _proto_on_sensors(self, frames):
@@ -199,8 +202,12 @@ class Watch:
             gravity=self._protovec3_to_tuple(frame.grav),
             angular_velocity=self._protovec3_to_tuple(frame.gyro),
             orientation=self._protoquat_to_tuple(frame.quat),
-            magnetic_field=self._protovec3_to_tuple(frame.mag) if frame.hasField("mag") else None,
-            magnetic_field_calibration=self._protovec3_to_tuple(frame.magCal) if frame.hasField("magCal") else None
+            magnetic_field=self._protovec3_to_tuple(frame.mag)
+            if frame.hasField("mag")
+            else None,
+            magnetic_field_calibration=self._protovec3_to_tuple(frame.magCal)
+            if frame.hasField("magCal")
+            else None,
         )
         self.on_sensors(sensor_frame)
         self._on_arm_direction_change(sensor_frame)
@@ -254,13 +261,13 @@ class Watch:
 
     def _on_arm_direction_change(self, sensor_frame: SensorFrame):
         def normalize(vector):
-            length = sum(x*x for x in vector) ** 0.5
-            return [x/length for x in vector]
+            length = sum(x * x for x in vector) ** 0.5
+            return [x / length for x in vector]
 
         grav = normalize(sensor_frame.gravity)
 
-        av_x = -sensor_frame.angular_velocity[2] # right = +
-        av_y = -sensor_frame.angular_velocity[1] # down = +
+        av_x = -sensor_frame.angular_velocity[2]  # right = +
+        av_y = -sensor_frame.angular_velocity[1]  # down = +
 
         handedness_scale = -1 if self.hand == Hand.LEFT else 1
 

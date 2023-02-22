@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from enum import Enum
 import asyncio
-import typing
+from typing import Tuple
 import sys
 import platform
+import struct
 
 from touch_sdk.ble_connector import BLEConnector
 # pylint: disable=no-name-in-module
@@ -27,10 +28,10 @@ PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
 @dataclass(frozen=True)
 class SensorFrame:
     """A Frozen container class for values of all streamable Touch SDK sensors."""
-    acceleration: typing.Tuple[float]
-    gravity: typing.Tuple[float]
-    angular_velocity: typing.Tuple[float]
-    orientation: typing.Tuple[float]
+    acceleration: Tuple[float]
+    gravity: Tuple[float]
+    angular_velocity: Tuple[float]
+    orientation: Tuple[float]
 
 class Hand(Enum):
     """Which hand the watch is worn on."""
@@ -46,7 +47,7 @@ class Watch:
     Watch also parses the data that comes over Bluetooth and returns it through
     callback methods."""
 
-    def __init__(self, name_filter=None):
+    def __init__(self, name_filter=None, custom_data=None):
         """Creates a new instance of Watch. Does not start scanning for Bluetooth
         devices. Use Watch.start to enter the scanning and connection event loop.
 
@@ -56,6 +57,7 @@ class Watch:
             INTERACTION_SERVICE,
             name_filter
         )
+        self.custom_data = custom_data
         self.client = None
         self.hand = Hand.NONE
 
@@ -112,6 +114,7 @@ class Watch:
 
         try:
             await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await self._subscribe_to_custom_characteristics(client)
             await self._send_client_info(client)
 
         except ValueError:
@@ -119,6 +122,23 @@ class Watch:
             # gets called twice for the same device. Calling client.start_notify twice
             # will result in an error.
             pass
+
+
+    async def _subscribe_to_custom_characteristics(self, client):
+        if self.custom_data is None:
+            return
+
+        subscriptions = [client.start_notify(uuid, self._on_custom_data) for uuid in self.custom_data]
+        await asyncio.gather(*subscriptions)
+
+    async def _on_custom_data(self, characteristic, data):
+        format_descriptions = self.custom_data.get(characteristic.uuid)
+
+        if format_descriptions is None:
+            return
+
+        content = tuple(struct.unpack(fmt, data[slc]) for fmt, slc in format_descriptions)
+        self.on_custom_data(characteristic.uuid, content)
 
     async def _send_client_info(self, client):
         client_info = ClientInfo()
@@ -264,6 +284,9 @@ class Watch:
         delta_y = handedness_scale * (av_y * grav[2] - av_x * grav[1])
 
         self.on_arm_direction_change(delta_x, delta_y)
+
+    def on_custom_data(self, uuid: str, content: Tuple):
+        """Receive data from custom characteristics"""
 
     def trigger_haptics(self, intensity: float, duration_ms: int):
         """Trigger vibration haptics on the watch.

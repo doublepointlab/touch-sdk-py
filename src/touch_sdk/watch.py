@@ -6,7 +6,7 @@ import sys
 import platform
 import struct
 import re
-from itertools import accumulate, pairwise
+from itertools import accumulate, pairwise, chain
 
 from touch_sdk.ble_connector import BLEConnector
 
@@ -130,12 +130,13 @@ class Watch:
             # will result in an error.
             pass
 
-
     async def _subscribe_to_custom_characteristics(self, client):
         if self.custom_data is None:
             return
 
-        subscriptions = [client.start_notify(uuid, self._on_custom_data) for uuid in self.custom_data]
+        subscriptions = [
+            client.start_notify(uuid, self._on_custom_data) for uuid in self.custom_data
+        ]
         await asyncio.gather(*subscriptions)
 
     async def _on_custom_data(self, characteristic, data):
@@ -150,7 +151,11 @@ class Watch:
         ranges = pairwise(accumulate(sizes))
         data_pieces = [data[start:end] for start, end in ranges]
 
-        content = tuple(struct.unpack(fmt, piece) for piece, fmt in zip(data_pieces, format_strings[1:]))
+        nestedContent = [
+            struct.unpack(fmt, piece)
+            for piece, fmt in zip(data_pieces, format_strings[1:])
+        ]
+        content = tuple(chain(*nestedContent))
 
         self.on_custom_data(characteristic.uuid, content)
 

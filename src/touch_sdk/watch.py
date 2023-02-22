@@ -140,12 +140,16 @@ class Watch:
         await asyncio.gather(*subscriptions)
 
     async def _on_custom_data(self, characteristic, data):
-        format_description = self.custom_data.get(characteristic.uuid)
+        fmt = self.custom_data.get(characteristic.uuid)
 
-        if format_description is None:
+        if fmt is None:
             return
 
-        format_strings = re.split("(?=[@<>=!])", format_description)
+        endianness_tokens = "@<>=!"
+
+        format_description = fmt if fmt[0] in endianness_tokens else '@' + fmt
+
+        format_strings = re.split(f"(?=[{endianness_tokens}])", format_description)
 
         sizes = [struct.calcsize(fmt) for fmt in format_strings]
         ranges = pairwise(accumulate(sizes))

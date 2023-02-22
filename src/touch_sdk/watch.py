@@ -5,6 +5,8 @@ from typing import Tuple, Optional
 import sys
 import platform
 import struct
+import re
+from itertools import accumulate, pairwise
 
 from touch_sdk.ble_connector import BLEConnector
 
@@ -137,12 +139,19 @@ class Watch:
         await asyncio.gather(*subscriptions)
 
     async def _on_custom_data(self, characteristic, data):
-        format_descriptions = self.custom_data.get(characteristic.uuid)
+        format_description = self.custom_data.get(characteristic.uuid)
 
-        if format_descriptions is None:
+        if format_description is None:
             return
 
-        content = tuple(struct.unpack(fmt, data[slc]) for fmt, slc in format_descriptions)
+        format_strings = re.split("(?=[@<>=!])", format_description)
+
+        sizes = [struct.calcsize(fmt) for fmt in format_strings]
+        ranges = pairwise(accumulate(sizes))
+        data_pieces = [data[start:end] for start, end in ranges]
+
+        content = tuple(struct.unpack(fmt, piece) for piece, fmt in zip(data_pieces, format_strings[1:]))
+
         self.on_custom_data(characteristic.uuid, content)
 
     async def _send_client_info(self, client):

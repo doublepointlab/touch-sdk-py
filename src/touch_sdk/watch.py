@@ -4,6 +4,9 @@ import asyncio
 from typing import Tuple, Optional
 import sys
 import platform
+import struct
+import re
+from itertools import accumulate, pairwise, chain
 
 from touch_sdk.ble_connector import BLEConnector
 
@@ -61,6 +64,11 @@ class Watch:
         self._connector = BLEConnector(
             self._handle_connect, INTERACTION_SERVICE, name_filter
         )
+
+        self.custom_data = None
+        if hasattr(self.__class__, 'custom_data'):
+            self.custom_data = self.__class__.custom_data
+
         self.client = None
         self.hand = Hand.NONE
 
@@ -117,6 +125,7 @@ class Watch:
 
         try:
             await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+            await self._subscribe_to_custom_characteristics(client)
             await self._send_client_info(client)
 
         except ValueError:
@@ -124,6 +133,39 @@ class Watch:
             # gets called twice for the same device. Calling client.start_notify twice
             # will result in an error.
             pass
+
+    async def _subscribe_to_custom_characteristics(self, client):
+        if self.custom_data is None:
+            return
+
+        subscriptions = [
+            client.start_notify(uuid, self._on_custom_data) for uuid in self.custom_data
+        ]
+        await asyncio.gather(*subscriptions)
+
+    async def _on_custom_data(self, characteristic, data):
+        fmt = self.custom_data.get(characteristic.uuid)
+
+        if fmt is None:
+            return
+
+        endianness_tokens = "@<>=!"
+
+        format_description = fmt if fmt[0] in endianness_tokens else '@' + fmt
+
+        format_strings = re.split(f"(?=[{endianness_tokens}])", format_description)
+
+        sizes = [struct.calcsize(fmt) for fmt in format_strings]
+        ranges = pairwise(accumulate(sizes))
+        data_pieces = [data[start:end] for start, end in ranges]
+
+        nestedContent = [
+            struct.unpack(fmt, piece)
+            for piece, fmt in zip(data_pieces, format_strings[1:])
+        ]
+        content = tuple(chain(*nestedContent))
+
+        self.on_custom_data(characteristic.uuid, content)
 
     async def _send_client_info(self, client):
         client_info = ClientInfo()
@@ -279,6 +321,9 @@ class Watch:
         delta_y = handedness_scale * (av_y * grav[2] - av_x * grav[1])
 
         self.on_arm_direction_change(delta_x, delta_y)
+
+    def on_custom_data(self, uuid: str, content: Tuple):
+        """Receive data from custom characteristics"""
 
     def trigger_haptics(self, intensity: float, duration_ms: int):
         """Trigger vibration haptics on the watch.

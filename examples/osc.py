@@ -13,7 +13,7 @@ class MyWatch(Watch):
     def on_sensors(self, sensors):
         angular_velocity = sensors.angular_velocity
         osc_client.send_message("/angular-velocity", angular_velocity)
-        print(sensors.angular_velocity)
+        print(angular_velocity)
 
 watch = MyWatch()
 watch.start()

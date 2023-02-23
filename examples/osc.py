@@ -7,7 +7,7 @@ from pythonosc.udp_client import SimpleUDPClient
 ip = "127.0.0.1"
 port = 6666
 
-osc_client = SimpleUDPClient(ip, port)  # Create client
+osc_client = SimpleUDPClient(ip, port)
 
 class MyWatch(Watch):
     def on_sensors(self, sensors):

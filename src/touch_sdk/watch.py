@@ -64,7 +64,11 @@ class Watch:
         self._connector = BLEConnector(
             self._handle_connect, INTERACTION_SERVICE, name_filter
         )
+
         self.custom_data = None
+        if hasattr(self.__class__, 'custom_data'):
+            self.custom_data = self.__class__.custom_data
+
         self.client = None
         self.hand = Hand.NONE
 

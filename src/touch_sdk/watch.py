@@ -6,8 +6,9 @@ import sys
 import platform
 import struct
 import re
-from itertools import accumulate, pairwise, chain
+from itertools import accumulate, chain
 
+from touch_sdk.utils import pairwise
 from touch_sdk.ble_connector import BLEConnector
 
 # pylint: disable=no-name-in-module

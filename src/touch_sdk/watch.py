@@ -239,6 +239,9 @@ class Watch:
         if message.HasField("info"):
             self._proto_on_info(message.info)
 
+        if message.pressure != 0.0:
+            self.on_pressure(message.pressure)
+
     def _proto_on_sensors(self, frames, timestamp):
         frame = frames[-1]
         sensor_frame = SensorFrame(
@@ -340,6 +343,9 @@ class Watch:
         """Callback when accelerometer, gyroscope, gravity, orientation, and
         magnetic field are changed. Guaranteed to have values for everything but
         magnetic field information in every update."""
+
+    def on_pressure(self, pressure: float):
+        """Called when new pressure value (in hectopascals) is received."""
 
     def on_arm_direction_change(self, delta_x: float, delta_y: float):
         """Gyroscope-based raycasting output. Called after sensor updates."""

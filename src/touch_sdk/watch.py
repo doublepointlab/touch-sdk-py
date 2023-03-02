@@ -45,9 +45,8 @@ class Hand(Enum):
 
 
 class Watch:
-    """Scans Touch SDK compatible Bluetooth LE devices and connects to all of them.
-
-    After the controller device accepts a connection, Watch disconnects other devices.
+    """Scans Touch SDK compatible Bluetooth LE devices and connects to the first one
+    of them that approves the connection.
 
     Watch also parses the data that comes over Bluetooth and returns it through
     callback methods."""
@@ -57,12 +56,10 @@ class Watch:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._connector = GattConnector(
-            self._on_approved_connection, name_filter
-        )
+        self._connector = GattConnector(self._on_approved_connection, name_filter)
 
         self.custom_data = None
-        if hasattr(self.__class__, 'custom_data'):
+        if hasattr(self.__class__, "custom_data"):
             self.custom_data = self.__class__.custom_data
 
         self.client = None
@@ -93,15 +90,10 @@ class Watch:
                 message = Update()
                 message.ParseFromString(bytes(data))
 
-                # Watch sent a disconnect signal. Might be because the user pressed "no"
-                # from the connection dialog on the watch (was not connected to begin with),
-                # or because the watch app is exiting / user pressed "forget devices" (was
-                # connected, a.k.a. self.client == client)
+                # Watch sent a disconnect signal because the watch app is
+                # exiting or the user pressed "forget devices"
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
                     disconnect_event.set()
-
-                # Watch sent some other data, but no disconnect signal = watch accepted
-                # the connection
                 else:
                     await proto_callback(message)
 
@@ -113,15 +105,15 @@ class Watch:
                 async with BleakClient(device) as client:
                     self.client = client
                     try:
-                        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+                        await client.start_notify(
+                            PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf)
+                        )
                         await self._subscribe_to_custom_characteristics(client)
                         await self._fetch_info(client)
                         await self._send_client_info(client)
 
                     except ValueError:
-                        # Sometimes there is a race condition in BLEConnector and _handle_connect
-                        # gets called twice for the same device. Calling client.start_notify twice
-                        # will result in an error.
+                        # TODO: is this necessary?
                         pass
 
                     await disconnect_event.wait()
@@ -150,7 +142,7 @@ class Watch:
 
         endianness_tokens = "@<>=!"
 
-        format_description = fmt if fmt[0] in endianness_tokens else '@' + fmt
+        format_description = fmt if fmt[0] in endianness_tokens else "@" + fmt
 
         format_strings = re.split(f"(?=[{endianness_tokens}])", format_description)
 
@@ -212,16 +204,14 @@ class Watch:
             angular_velocity=self._protovec3_to_tuple(frame.gyro),
             orientation=self._protoquat_to_tuple(frame.quat),
             magnetic_field=(
-                self._protovec3_to_tuple(frame.mag)
-                if frame.HasField("mag")
-                else None
+                self._protovec3_to_tuple(frame.mag) if frame.HasField("mag") else None
             ),
             magnetic_field_calibration=(
                 self._protovec3_to_tuple(frame.magCal)
                 if frame.HasField("magCal")
                 else None
             ),
-            timestamp=timestamp
+            timestamp=timestamp,
         )
         self.on_sensors(sensor_frame)
         self._on_arm_direction_change(sensor_frame)
@@ -255,7 +245,9 @@ class Watch:
 
     def _write_input_characteristic(self, data, client):
         loop = asyncio.get_running_loop()
-        loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data, client))
+        loop.create_task(
+            self._async_write_input_characteristic(PROTOBUF_INPUT, data, client)
+        )
 
     async def _async_write_input_characteristic(self, characteristic, data, client):
         if client:

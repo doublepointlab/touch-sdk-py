@@ -32,7 +32,9 @@ class GattConnector:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._scanner = GattScanner(self._on_scan_result, INTERACTION_SERVICE, name_filter)
+        self._scanner = GattScanner(
+            self._on_scan_result, INTERACTION_SERVICE, name_filter
+        )
         self._connected_devices = set()
         self._approved_devices = set()
         self._on_approved_connection = on_approved_connection
@@ -60,13 +62,17 @@ class GattConnector:
             async with BleakClient(device) as client:
                 self._connected_devices.add(device)
                 try:
-                    await client.start_notify(PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name))
+                    await client.start_notify(
+                        PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
+                    )
                 except ValueError:
                     pass
 
                 await self._send_client_info(client)
 
-                if (disconnect_event := self._disconnect_events.get(device)) is not None:
+                if (
+                    disconnect_event := self._disconnect_events.get(device)
+                ) is not None:
                     await disconnect_event.wait()
         except bleak.exc.BleakDBusError as e:
             # catching:
@@ -84,8 +90,7 @@ class GattConnector:
 
         # Watch sent a disconnect signal. Might be because the user pressed "no"
         # from the connection dialog on the watch (was not connected to begin with),
-        # or because the watch app is exiting / user pressed "forget devices" (was
-        # connected, a.k.a. self.client == client)
+        # or because the watch app is exiting / user pressed "forget devices"
         if any(s == Update.Signal.DISCONNECT for s in message.signals):
             await self._handle_disconnect_signal(device, name)
 
@@ -123,5 +128,3 @@ class GattConnector:
         input_update = InputUpdate()
         input_update.clientInfo.CopyFrom(client_info)
         await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
-
-

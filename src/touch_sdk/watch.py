@@ -8,8 +8,11 @@ import struct
 import re
 from itertools import accumulate, chain
 
+import bleak
+from bleak import BleakClient
+
 from touch_sdk.utils import pairwise
-from touch_sdk.ble_connector import BLEConnector
+from touch_sdk.gatt_connector import GattConnector
 
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
@@ -63,8 +66,8 @@ class Watch:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._connector = BLEConnector(
-            self._handle_connect, INTERACTION_SERVICE, name_filter
+        self._connector = GattConnector(
+            self._on_approved_connection, name_filter
         )
 
         self.custom_data = None
@@ -90,23 +93,11 @@ class Watch:
         """Stops bluetooth scanner and disconnects Bluetooth devices."""
         self._connector.stop()
 
-    async def _handle_connect(self, device, name):
-        # In the situation when there are multiple Touch SDK compatible watches available,
-        # `_handle_connect` will be called for each. `client` will hold the value for one
-        # connection, matching `device` and `name`.
-        #
-        # `self.client` will only be assigned once the watch accepts the connection. This
-        # will also call `self._connector.disconnect_devices(exclude=device)`, so the
-        # remaining watches should not be able to accept the connection anymore - but if
-        # they do, the end result is likely just all watches disconnecting. Not ideal,
-        # but no errors.
-        #
-        # Once the connected watch sends a disconnect signal (`Update.Signal.DISCONNECT`),
-        # `self.client` will be deassigned (set to None), and the cycle can start again.
+    async def _on_approved_connection(self, device, name):
 
-        client = self._connector.devices[device]
+        disconnect_event = asyncio.Event()
 
-        def wrap_protobuf(callback):
+        def wrap_protobuf(proto_callback):
             async def wrapped(_, data):
                 message = Update()
                 message.ParseFromString(bytes(data))
@@ -116,25 +107,39 @@ class Watch:
                 # or because the watch app is exiting / user pressed "forget devices" (was
                 # connected, a.k.a. self.client == client)
                 if any(s == Update.Signal.DISCONNECT for s in message.signals):
-                    await self._on_disconnect_signal(client, name)
+                    disconnect_event.set()
 
                 # Watch sent some other data, but no disconnect signal = watch accepted
                 # the connection
                 else:
-                    await self._on_data(client, name, device, callback, message)
+                    await proto_callback(message)
 
             return wrapped
 
         try:
-            await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
-            await self._subscribe_to_custom_characteristics(client)
-            await self._send_client_info(client)
+            async with BleakClient(device) as client:
+                self.client = client
+                try:
+                    await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+                    await self._subscribe_to_custom_characteristics(client)
+                    await self._fetch_info(client)
+                    await self._send_client_info(client)
 
-        except ValueError:
-            # Sometimes there is a race condition in BLEConnector and _handle_connect
-            # gets called twice for the same device. Calling client.start_notify twice
-            # will result in an error.
-            pass
+                except ValueError:
+                    # Sometimes there is a race condition in BLEConnector and _handle_connect
+                    # gets called twice for the same device. Calling client.start_notify twice
+                    # will result in an error.
+                    pass
+
+                await disconnect_event.wait()
+
+            self.client = None
+            await self._connector._scanner.start_scanner()
+
+        except bleak.exc.BleakDBusError as e:
+            print(f"watch caught {e}")
+
+
 
     async def _subscribe_to_custom_characteristics(self, client):
         if self.custom_data is None:
@@ -178,40 +183,8 @@ class Watch:
         input_update.clientInfo.CopyFrom(client_info)
         await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
 
-    async def _on_disconnect_signal(self, client, name):
-        # As a GATT server, the watch can't actually disconnect on its own.
-        # However, they want this connection to be ended, so the client side disconnects.
-        await client.disconnect()
-
-        # This client had accepted the connection before -> "disconnected"
-        if self.client == client:
-            print(f"Disconnected from {name}")
-            self.client = None
-            await self._connector.start_scanner()
-
-        # This client had NOT accepted the connection before -> "declined"
-        else:
-            print(f"Connection declined from {name}")
-
-    async def _on_data(self, client, name, device, callback, message):
-        if not self.client:
-            print(f"Connected to {name}")
-            self.client = client
-            await self._connector.disconnect_devices(exclude=device)
-            await self._fetch_info()
-
-        # Parse and handle the actual data
-        if self.client == client:
-            await callback(message)
-
-        # Connection accepted from a second (this) device at the same time -> cancel
-        # connection. Generally this code path should not happen, but with an unlucky
-        # timing it's possible.
-        else:
-            await client.disconnect()
-
-    async def _fetch_info(self):
-        data = await self.client.read_gatt_char(PROTOBUF_OUTPUT)
+    async def _fetch_info(self, client):
+        data = await client.read_gatt_char(PROTOBUF_OUTPUT)
         update = Update()
         update.ParseFromString(bytes(data))
         if update.HasField("info"):
@@ -288,13 +261,13 @@ class Watch:
     def _proto_on_info(self, info):
         self.hand = Hand(info.hand)
 
-    def _write_input_characteristic(self, data):
+    def _write_input_characteristic(self, data, client):
         loop = asyncio.get_running_loop()
-        loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data))
+        loop.create_task(self._async_write_input_characteristic(PROTOBUF_INPUT, data, client))
 
-    async def _async_write_input_characteristic(self, characteristic, data):
-        if self.client:
-            await self.client.write_gatt_char(characteristic, data)
+    async def _async_write_input_characteristic(self, characteristic, data, client):
+        if client:
+            await client.write_gatt_char(characteristic, data)
 
     @staticmethod
     def _create_haptics_update(intensity, length):
@@ -334,7 +307,7 @@ class Watch:
         intensity: between 0 and 1
         duration_ms: between 0 and 5000"""
         input_update = self._create_haptics_update(intensity, duration_ms)
-        self._write_input_characteristic(input_update.SerializeToString())
+        self._write_input_characteristic(input_update.SerializeToString(), self.client)
 
     def on_sensors(self, sensor_frame: SensorFrame):
         """Callback when accelerometer, gyroscope, gravity, orientation, and

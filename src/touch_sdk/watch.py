@@ -13,7 +13,7 @@ from bleak import BleakClient
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import pairwise
-from touch_sdk.gatt_connector import GattConnector
+from touch_sdk.watch_connector import WatchConnector
 
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
@@ -56,7 +56,7 @@ class Watch:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._connector = GattConnector(self._on_approved_connection, name_filter)
+        self._connector = WatchConnector(self._on_approved_connection, name_filter)
 
         self.custom_data = None
         if hasattr(self.__class__, "custom_data"):

@@ -24,7 +24,7 @@ from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientI
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
 
 
-class GattConnector:
+class WatchConnector:
     """TODO"""
 
     def __init__(self, on_approved_connection, name_filter=None):
@@ -70,10 +70,10 @@ class GattConnector:
 
                 await self._send_client_info(client)
 
-                if (
-                    disconnect_event := self._disconnect_events.get(device)
-                ) is not None:
+                disconnect_event = self._disconnect_events.get(device)
+                if disconnect_event is not None:
                     await disconnect_event.wait()
+
         except bleak.exc.BleakDBusError as e:
             # catching:
             # - a benign ATT Handle error here, somehow caused by _send_client_info

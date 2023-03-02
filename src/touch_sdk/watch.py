@@ -11,6 +11,7 @@ from itertools import accumulate, chain
 import bleak
 from bleak import BleakClient
 
+from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import pairwise
 from touch_sdk.gatt_connector import GattConnector
 
@@ -20,16 +21,6 @@ from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientI
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
-
-
-# GATT related UUIDs
-# INTERACTION_SERVICE is needed for scanning while the Wear OS
-# app is backwards compatible. Only one service UUID can be
-# advertised.
-INTERACTION_SERVICE = "008e74d0-7bb3-4ac5-8baf-e5e372cced76"
-PROTOBUF_SERVICE = "f9d60370-5325-4c64-b874-a68c7c555bad"
-PROTOBUF_OUTPUT = "f9d60371-5325-4c64-b874-a68c7c555bad"
-PROTOBUF_INPUT = "f9d60372-5325-4c64-b874-a68c7c555bad"
 
 
 @dataclass(frozen=True)

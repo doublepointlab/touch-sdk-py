@@ -84,7 +84,8 @@ class GattConnector:
             print(f"connector caught {e}")
 
         print("removing device from connected devices")
-        self._connected_devices.remove(device)
+        self._connected_devices = self._connected_devices - {device}
+        self._scanner.forget_device(device)
 
     async def _on_protobuf(self, device, name, _, data):
         message = Update()
@@ -106,12 +107,12 @@ class GattConnector:
         if device in self._approved_devices:
             return
         self._approved_devices.add(device)
+        await self._scanner.stop_scanner()
 
         print("Approved connection")
         for _, event in self._disconnect_events.items():
             event.set()
 
-        await self._scanner.stop_scanner()
         await self._wait_for_all_disconnected()
         await self._on_approved_connection(device, name)
 

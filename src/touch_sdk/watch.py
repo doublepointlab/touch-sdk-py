@@ -116,30 +116,31 @@ class Watch:
 
             return wrapped
 
-        try:
-            async with BleakClient(device) as client:
-                self.client = client
-                try:
-                    await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
-                    await self._subscribe_to_custom_characteristics(client)
-                    await self._fetch_info(client)
-                    await self._send_client_info(client)
+        retry = True
+        while retry:
+            try:
+                async with BleakClient(device) as client:
+                    self.client = client
+                    try:
+                        await client.start_notify(PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf))
+                        await self._subscribe_to_custom_characteristics(client)
+                        await self._fetch_info(client)
+                        await self._send_client_info(client)
 
-                except ValueError:
-                    # Sometimes there is a race condition in BLEConnector and _handle_connect
-                    # gets called twice for the same device. Calling client.start_notify twice
-                    # will result in an error.
-                    pass
+                    except ValueError:
+                        # Sometimes there is a race condition in BLEConnector and _handle_connect
+                        # gets called twice for the same device. Calling client.start_notify twice
+                        # will result in an error.
+                        pass
 
-                await disconnect_event.wait()
+                    await disconnect_event.wait()
+                    retry = False
 
-            self.client = None
-            await self._connector._scanner.start_scanner()
+                self.client = None
+                await self._connector._scanner.start_scanner()
 
-        except bleak.exc.BleakDBusError as e:
-            print(f"watch caught {e}")
-
-
+            except bleak.exc.BleakDBusError as e:
+                print(f"watch caught {e}")
 
     async def _subscribe_to_custom_characteristics(self, client):
         if self.custom_data is None:

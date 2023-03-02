@@ -22,7 +22,7 @@ class GattScanner:
         self.service_uuid = service_uuid
         self.name_filter = name_filter
         self.scanner = None
-        self.devices = set()
+        self._devices = set()
         self.start_event = asyncio.Event()
         self.stop_event = asyncio.Event()
 
@@ -63,16 +63,19 @@ class GattScanner:
     async def start_scanner(self):
         """Start the scanner. This function should not be called before GattScanner.run
         or GattScanner.start have been called."""
-        self.devices.clear()  # Reset found devices list
+        self._devices.clear()  # Reset found devices list
         self.start_event.set()
+
+    def forget_device(self, device):
+        self._devices = self._devices - {device}
 
     async def _detection_callback(self, device, advertisement_data):
         print("scanning...")
 
-        if device in self.devices:
+        if device in self._devices:
             return
 
-        self.devices.add(device)
+        self._devices.add(device)
 
         name = (
             advertisement_data.manufacturer_data.get(0xFFFF, bytearray()).decode(

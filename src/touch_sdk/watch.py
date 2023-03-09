@@ -2,14 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 from typing import Tuple, Optional
-import sys
-import platform
 import struct
 import re
 from itertools import accumulate, chain
-
-import bleak
-from bleak import BleakClient
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import pairwise
@@ -17,7 +12,7 @@ from touch_sdk.watch_connector import WatchConnector
 
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
-from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientInfo
+from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -56,7 +51,9 @@ class Watch:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._connector = WatchConnector(self._on_approved_connection, self._on_protobuf, name_filter)
+        self._connector = WatchConnector(
+            self._on_approved_connection, self._on_protobuf, name_filter
+        )
 
         self.custom_data = None
         if hasattr(self.__class__, "custom_data"):
@@ -113,22 +110,13 @@ class Watch:
         ranges = pairwise(accumulate(sizes))
         data_pieces = [data[start:end] for start, end in ranges]
 
-        nestedContent = [
+        nested_content = [
             struct.unpack(fmt, piece)
             for piece, fmt in zip(data_pieces, format_strings[1:])
         ]
-        content = tuple(chain(*nestedContent))
+        content = tuple(chain(*nested_content))
 
         self.on_custom_data(characteristic.uuid, content)
-
-    async def _send_client_info(self, client):
-        client_info = ClientInfo()
-        client_info.appName = sys.argv[0]
-        client_info.deviceName = platform.node()
-        client_info.os = platform.system()
-        input_update = InputUpdate()
-        input_update.clientInfo.CopyFrom(client_info)
-        await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
 
     async def _fetch_info(self, client):
         data = await client.read_gatt_char(PROTOBUF_OUTPUT)

@@ -1,24 +1,17 @@
-from dataclasses import dataclass
-from enum import Enum
 import asyncio
-from typing import Tuple, Optional
 import sys
 import platform
-import struct
-import re
-from itertools import accumulate, chain
 from functools import partial
 
 import bleak
 from bleak import BleakClient
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT, INTERACTION_SERVICE
-from touch_sdk.utils import pairwise
 from touch_sdk.gatt_scanner import GattScanner
 
 # pylint: disable=no-name-in-module
-from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
-from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent, ClientInfo
+from touch_sdk.protobuf.watch_output_pb2 import Update
+from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, ClientInfo
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -52,8 +45,8 @@ class WatchConnector:
         await self._scanner.run()
 
     def stop(self):
-        """Stops bluetooth scanner."""
-        self._connector.stop_scanner()
+        """TODO"""
+        return
 
     async def _on_scan_result(self, device, name):
 
@@ -72,15 +65,17 @@ class WatchConnector:
             )
             print("client subscribed")
 
-
-        except bleak.exc.BleakDBusError as e:
+        except bleak.exc.BleakDBusError as error:
             # catching:
             # - a benign ATT Handle error here, somehow caused by _send_client_info
             # - random le-connection-abort-by-local
-            print(f"connector caught {e}")
+            print(f"connector caught {error}")
             await self.disconnect(device)
 
     async def disconnect(self, device):
+        """Disconnect the client associated with the argument device if it exists,
+        and clean up.
+        """
         if (client := self._clients.pop(device.address, None)) is not None:
             await client.disconnect()
 
@@ -109,7 +104,7 @@ class WatchConnector:
         self._approved_devices.add(device)
 
         for address in self._clients:
-            if (address != device.address):
+            if address != device.address:
                 self.disconnect(device)
 
         if (client := self._clients.get(device.address)) is not None:

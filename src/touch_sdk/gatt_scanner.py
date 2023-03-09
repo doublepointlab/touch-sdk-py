@@ -1,7 +1,6 @@
 import asyncio
 
-from bleak import BleakClient, BleakScanner
-from bleak.exc import BleakError
+from bleak import BleakScanner
 import asyncio_atexit
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""
@@ -50,7 +49,7 @@ class GattScanner:
 
             async with BleakScanner(
                 self._detection_callback, service_uuids=[self.service_uuid]
-            ) as scanner:
+            ) as _:
                 await self.stop_event.wait()
 
             print("stop scan")
@@ -67,6 +66,7 @@ class GattScanner:
         self.start_event.set()
 
     def forget_device(self, device):
+        """Forget device, i.e., act as if the device had never been discovered."""
         self._devices = self._devices - {device}
 
     async def _detection_callback(self, device, advertisement_data):

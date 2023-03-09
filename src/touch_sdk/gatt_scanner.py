@@ -70,7 +70,6 @@ class GattScanner:
         self._devices = self._devices - {device}
 
     async def _detection_callback(self, device, advertisement_data):
-        print("scanning...")
 
         if device in self._devices:
             return

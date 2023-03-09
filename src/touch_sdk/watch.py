@@ -56,7 +56,7 @@ class Watch:
         devices. Use Watch.start to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
-        self._connector = WatchConnector(self._on_approved_connection, name_filter)
+        self._connector = WatchConnector(self._on_approved_connection, self._on_protobuf, name_filter)
 
         self.custom_data = None
         if hasattr(self.__class__, "custom_data"):
@@ -81,49 +81,12 @@ class Watch:
         """Stops bluetooth scanner and disconnects Bluetooth devices."""
         self._connector.stop()
 
-    async def _on_approved_connection(self, device, name):
+    async def _on_approved_connection(self, client):
 
-        disconnect_event = asyncio.Event()
+        self.client = client
 
-        def wrap_protobuf(proto_callback):
-            async def wrapped(_, data):
-                message = Update()
-                message.ParseFromString(bytes(data))
-
-                # Watch sent a disconnect signal because the watch app is
-                # exiting or the user pressed "forget devices"
-                if any(s == Update.Signal.DISCONNECT for s in message.signals):
-                    disconnect_event.set()
-                else:
-                    await proto_callback(message)
-
-            return wrapped
-
-        retry = True
-        while retry:
-            try:
-                async with BleakClient(device) as client:
-                    self.client = client
-                    try:
-                        await client.start_notify(
-                            PROTOBUF_OUTPUT, wrap_protobuf(self._on_protobuf)
-                        )
-                        await self._subscribe_to_custom_characteristics(client)
-                        await self._fetch_info(client)
-                        await self._send_client_info(client)
-
-                    except ValueError:
-                        # TODO: is this necessary?
-                        pass
-
-                    await disconnect_event.wait()
-                    retry = False
-
-                self.client = None
-                await self._connector._scanner.start_scanner()
-
-            except bleak.exc.BleakDBusError as e:
-                print(f"watch caught {e}")
+        await self._fetch_info(client)
+        await self._subscribe_to_custom_characteristics(client)
 
     async def _subscribe_to_custom_characteristics(self, client):
         if self.custom_data is None:

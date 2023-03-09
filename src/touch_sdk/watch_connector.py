@@ -27,7 +27,7 @@ __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with t
 class WatchConnector:
     """TODO"""
 
-    def __init__(self, on_approved_connection, name_filter=None):
+    def __init__(self, on_approved_connection, on_message, name_filter=None):
         """Creates a new instance of Watch. Does not start scanning for Bluetooth
         devices. Use Watch.start to enter the scanning and connection event loop.
 
@@ -35,10 +35,11 @@ class WatchConnector:
         self._scanner = GattScanner(
             self._on_scan_result, INTERACTION_SERVICE, name_filter
         )
-        self._connected_devices = set()
+        self._connected_addresses = set()
+        self._clients = {}
         self._approved_devices = set()
         self._on_approved_connection = on_approved_connection
-        self._disconnect_events = {}
+        self._on_message = on_message
 
     def start(self):
         """Blocking event loop that starts the Bluetooth scanner."""
@@ -56,32 +57,34 @@ class WatchConnector:
 
     async def _on_scan_result(self, device, name):
 
-        self._disconnect_events[device] = asyncio.Event()
-
         try:
-            async with BleakClient(device) as client:
-                self._connected_devices.add(device)
-                try:
-                    await client.start_notify(
-                        PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
-                    )
-                except ValueError:
-                    pass
+            client = BleakClient(device)
+            print("client init")
 
-                await self._send_client_info(client)
+            await client.connect()
+            self._clients[device.address] = client
+            print("client connected")
+            await self._send_client_info(client)
+            print("client info sent")
 
-                disconnect_event = self._disconnect_events.get(device)
-                if disconnect_event is not None:
-                    await disconnect_event.wait()
+            await client.start_notify(
+                PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
+            )
+            print("client subscribed")
+
 
         except bleak.exc.BleakDBusError as e:
             # catching:
             # - a benign ATT Handle error here, somehow caused by _send_client_info
             # - random le-connection-abort-by-local
             print(f"connector caught {e}")
+            await self.disconnect(device)
 
-        print("removing device from connected devices")
-        self._connected_devices = self._connected_devices - {device}
+    async def disconnect(self, device):
+        if (client := self._clients.pop(device.address, None)) is not None:
+            await client.disconnect()
+
+        self._approved_devices.discard(device)
         self._scanner.forget_device(device)
 
     async def _on_protobuf(self, device, name, _, data):
@@ -97,28 +100,29 @@ class WatchConnector:
         # Watch sent some other data, but no disconnect signal = watch accepted
         # the connection
         else:
-            await self._handle_approved_connection(device, name)
+            await self._handle_approved_connection(device)
+            await self._on_message(message)
 
-    async def _handle_approved_connection(self, device, name):
+    async def _handle_approved_connection(self, device):
         if device in self._approved_devices:
             return
         self._approved_devices.add(device)
-        await self._scanner.stop_scanner()
 
-        print("Approved connection")
-        for _, event in self._disconnect_events.items():
-            event.set()
+        for address in self._clients:
+            if (address != device.address):
+                self.disconnect(device)
 
-        await self._wait_for_all_disconnected()
-        await self._on_approved_connection(device, name)
+        if (client := self._clients.get(device.address)) is not None:
+            print("Approved connection")
+            await self._on_approved_connection(client)
 
     async def _wait_for_all_disconnected(self):
-        while self._connected_devices:
+        while self._connected_addresses:
             await asyncio.sleep(0)
 
     async def _handle_disconnect_signal(self, device, name):
-        self._disconnect_events[device].set()
         print(f"Connection declined from {name}")
+        await self.disconnect(device)
 
     async def _send_client_info(self, client):
         client_info = ClientInfo()

@@ -74,10 +74,6 @@ class Watch:
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
         await self._connector.run()
 
-    def stop(self):
-        """Stops bluetooth scanner and disconnects Bluetooth devices."""
-        self._connector.stop()
-
     async def _on_approved_connection(self, client):
 
         self.client = client

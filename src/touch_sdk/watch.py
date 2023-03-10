@@ -35,6 +35,15 @@ class Hand(Enum):
     RIGHT = 1
     LEFT = 2
 
+def _protovec2_to_tuple(vec):
+    return (vec.x, vec.y)
+
+def _protovec3_to_tuple(vec):
+    return (vec.x, vec.y, vec.z)
+
+def _protoquat_to_tuple(vec):
+    return (vec.x, vec.y, vec.z, vec.w)
+
 
 class Watch:
     """Scans Touch SDK compatible Bluetooth LE devices and connects to the first one
@@ -111,19 +120,7 @@ class Watch:
     def on_custom_data(self, uuid: str, content: Tuple):
         """Receive data from custom characteristics"""
 
-    # Misc
-
-    @staticmethod
-    def _protovec2_to_tuple(vec):
-        return (vec.x, vec.y)
-
-    @staticmethod
-    def _protovec3_to_tuple(vec):
-        return (vec.x, vec.y, vec.z)
-
-    @staticmethod
-    def _protoquat_to_tuple(vec):
-        return (vec.x, vec.y, vec.z, vec.w)
+    # Main protobuf characteristic
 
     async def _on_protobuf(self, message):
         self._proto_on_sensors(message.sensorFrames, message.unixTime)
@@ -140,15 +137,15 @@ class Watch:
     def _proto_on_sensors(self, frames, timestamp):
         frame = frames[-1]
         sensor_frame = SensorFrame(
-            acceleration=self._protovec3_to_tuple(frame.acc),
-            gravity=self._protovec3_to_tuple(frame.grav),
-            angular_velocity=self._protovec3_to_tuple(frame.gyro),
-            orientation=self._protoquat_to_tuple(frame.quat),
+            acceleration=_protovec3_to_tuple(frame.acc),
+            gravity=_protovec3_to_tuple(frame.grav),
+            angular_velocity=_protovec3_to_tuple(frame.gyro),
+            orientation=_protoquat_to_tuple(frame.quat),
             magnetic_field=(
-                self._protovec3_to_tuple(frame.mag) if frame.HasField("mag") else None
+                _protovec3_to_tuple(frame.mag) if frame.HasField("mag") else None
             ),
             magnetic_field_calibration=(
-                self._protovec3_to_tuple(frame.magCal)
+                _protovec3_to_tuple(frame.magCal)
                 if frame.HasField("magCal")
                 else None
             ),
@@ -195,7 +192,7 @@ class Watch:
 
     def _proto_on_touch_events(self, touch_events):
         for touch in touch_events:
-            coords = self._protovec2_to_tuple(touch.coords[0])
+            coords = _protovec2_to_tuple(touch.coords[0])
             if touch.eventType == TouchEvent.TouchEventType.BEGIN:
                 self.on_touch_down(*coords)
             elif touch.eventType == TouchEvent.TouchEventType.END:

@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import platform
 from functools import partial
@@ -30,7 +31,7 @@ class WatchConnector:
         self._scanner = GattScanner(
             self._on_scan_result, INTERACTION_SERVICE, name_filter
         )
-        self._approved_devices = set()
+        self._approved_addresses = set()
         self._connected_addresses = set()
         self._informed_addresses = (
             set()
@@ -63,17 +64,17 @@ class WatchConnector:
             # - ATT Invalid Handle error, coming from _send_client_info
             # - le-connection-abort-by-local, coming from client.connect
             logger.warning(f"{error}. Disconnecting {name}.")
-            await self.disconnect(device)
+            await self.disconnect(device.address)
 
-    async def disconnect(self, device):
+    async def disconnect(self, address):
         """Disconnect the client associated with the argument device if it exists,
         and clean up.
         """
-        if (client := self._clients.pop(device.address, None)) is not None:
+        if (client := self._clients.pop(address, None)) is not None:
             await client.disconnect()
 
-        self._approved_devices.discard(device)
-        self._scanner.forget_device(device)
+        self._approved_addresses.discard(address)
+        self._scanner.forget_address(address)
 
     async def _on_protobuf(self, device, name, _, data):
         message = Update()
@@ -92,13 +93,17 @@ class WatchConnector:
             await self._on_message(message)
 
     async def _handle_approved_connection(self, device, name):
-        if device in self._approved_devices:
+        if device.address in self._approved_addresses:
             return
-        self._approved_devices.add(device)
+        self._approved_addresses.add(device.address)
 
-        for address in self._clients:
-            if address != device.address:
-                await self.disconnect(device)
+        disconnect_tasks = [
+            self.disconnect(address)
+            for address in self._clients
+            if address != device.address
+        ]
+
+        await asyncio.gather(*disconnect_tasks)
 
         if (client := self._clients.get(device.address)) is not None:
             logger.info(f"Connection approved by ${name}")
@@ -106,7 +111,7 @@ class WatchConnector:
 
     async def _handle_disconnect_signal(self, device, name):
         logger.info(f"Connection declined from {name}")
-        await self.disconnect(device)
+        await self.disconnect(device.address)
 
     async def _send_client_info(self, client):
         if client.address in self._informed_addresses:

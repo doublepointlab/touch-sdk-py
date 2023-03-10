@@ -2,6 +2,7 @@ import asyncio
 import sys
 import platform
 from functools import partial
+import logging
 
 import bleak
 from bleak import BleakClient
@@ -15,6 +16,8 @@ from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, ClientInfo
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
+
+logger = logging.getLogger(__name__)
 
 
 class WatchConnector:
@@ -52,24 +55,21 @@ class WatchConnector:
 
         try:
             client = BleakClient(device)
-            print("client init")
 
             await client.connect()
             self._clients[device.address] = client
-            print("client connected")
+
             await self._send_client_info(client)
-            print("client info sent")
 
             await client.start_notify(
                 PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
             )
-            print("client subscribed")
 
         except bleak.exc.BleakDBusError as error:
             # catching:
-            # - a benign ATT Handle error here, somehow caused by _send_client_info
-            # - random le-connection-abort-by-local
-            print(f"connector caught {error}")
+            # - ATT Invalid Handle error, coming from _send_client_info
+            # - le-connection-abort-by-local, coming from client.connect
+            logger.warning(f"{error}. Disconnecting {name}.")
             await self.disconnect(device)
 
     async def disconnect(self, device):
@@ -108,11 +108,11 @@ class WatchConnector:
                 self.disconnect(device)
 
         if (client := self._clients.get(device.address)) is not None:
-            print("Approved connection")
+            logger.info(f"Connection approved by ${name}")
             await self._on_approved_connection(client)
 
     async def _handle_disconnect_signal(self, device, name):
-        print(f"Connection declined from {name}")
+        logger.info(f"Connection declined from {name}")
         await self.disconnect(device)
 
     async def _send_client_info(self, client):

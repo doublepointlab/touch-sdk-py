@@ -1,9 +1,12 @@
 import asyncio
+import logging
 
 from bleak import BleakScanner
 import asyncio_atexit
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""
+
+logger = logging.getLogger(__name__)
 
 
 class GattScanner:
@@ -45,14 +48,14 @@ class GattScanner:
 
             self.start_event.clear()
             self.stop_event.clear()
-            print("start scan")
+            logger.info("Starting scan")
 
             async with BleakScanner(
                 self._detection_callback, service_uuids=[self.service_uuid]
             ) as _:
                 await self.stop_event.wait()
 
-            print("stop scan")
+            logger.info("Stopping scan")
             await self.start_event.wait()
 
     async def stop_scanner(self):
@@ -89,6 +92,6 @@ class GattScanner:
                 if self.name_filter.lower() not in name.lower():
                     return
 
-            print(f"Found {name}")
+            logger.info(f"Found {name}")
 
             await self.on_scan_result(device, name)

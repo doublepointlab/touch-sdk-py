@@ -99,7 +99,7 @@ class WatchConnector:
 
         for address in self._clients:
             if address != device.address:
-                self.disconnect(device)
+                await self.disconnect(device)
 
         if (client := self._clients.get(device.address)) is not None:
             logger.info(f"Connection approved by ${name}")

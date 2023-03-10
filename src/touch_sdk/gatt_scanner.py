@@ -60,7 +60,7 @@ class GattScanner:
 
     def forget_device(self, device):
         """Forget device, i.e., act as if the device had never been discovered."""
-        self._devices = self._devices - {device}
+        self._devices.discard(device)
 
     async def _detection_callback(self, device, advertisement_data):
 

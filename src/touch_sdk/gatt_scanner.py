@@ -28,16 +28,6 @@ class GattScanner:
         self.start_event = asyncio.Event()
         self.stop_event = asyncio.Event()
 
-    def start(self):
-        """Blocking event loop that starts the scanner. This is the easiest way
-        to enter the scanning loop.
-
-        Calls BLEConnector.run."""
-        try:
-            asyncio.run(self.run())
-        except KeyboardInterrupt:
-            pass
-
     async def run(self):
         """Blocking async event loop that starts the scanner.
 

@@ -39,10 +39,6 @@ class WatchConnector:
         self._on_approved_connection = on_approved_connection
         self._on_message = on_message
 
-    def start(self):
-        """Blocking event loop that starts the Bluetooth scanner."""
-        self._scanner.start()
-
     async def run(self):
         """Asynchronous blocking event loop that starts the Bluetooth scanner.
 

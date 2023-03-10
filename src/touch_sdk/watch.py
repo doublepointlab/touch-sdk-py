@@ -63,7 +63,10 @@ class Watch:
         """Blocking event loop that starts the Bluetooth scanner
 
         More handy than Watch.run when only this event loop is needed."""
-        self._connector.start()
+        try:
+            asyncio.run(self.run())
+        except KeyboardInterrupt:
+            pass
 
     async def run(self):
         """Asynchronous blocking event loop that starts the Bluetooth scanner.

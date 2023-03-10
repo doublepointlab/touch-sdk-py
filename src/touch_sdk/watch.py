@@ -80,6 +80,13 @@ class Watch:
         await self._fetch_info(client)
         await self._subscribe_to_custom_characteristics(client)
 
+    async def _fetch_info(self, client):
+        data = await client.read_gatt_char(PROTOBUF_OUTPUT)
+        update = Update()
+        update.ParseFromString(bytes(data))
+        if update.HasField("info"):
+            self.hand = Hand(update.info.hand)
+
     async def _subscribe_to_custom_characteristics(self, client):
         if self.custom_data is None:
             return
@@ -98,13 +105,6 @@ class Watch:
         content = unpack_chained(format_string, data)
 
         self.on_custom_data(characteristic.uuid, content)
-
-    async def _fetch_info(self, client):
-        data = await client.read_gatt_char(PROTOBUF_OUTPUT)
-        update = Update()
-        update.ParseFromString(bytes(data))
-        if update.HasField("info"):
-            self.hand = Hand(update.info.hand)
 
     @staticmethod
     def _protovec2_to_tuple(vec):

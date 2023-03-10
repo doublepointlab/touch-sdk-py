@@ -1,7 +1,6 @@
-from itertools import tee
 import re
 import struct
-from itertools import accumulate, chain
+from itertools import accumulate, chain, tee
 
 __doc__ = """Miscellaneous utilities."""
 
@@ -18,7 +17,7 @@ def pairwise(iterable):
     return zip(first, second)
 
 
-def unpack_chained(format, data):
+def unpack_chained(format_string, data):
     """
     Unpack struct data with a format string that may contain multiple
     endianness tokens.
@@ -31,7 +30,9 @@ def unpack_chained(format, data):
 
     endianness_tokens = "@<>=!"
 
-    format_description = format if format[0] in endianness_tokens else "@" + format
+    format_description = (
+        format_string if format_string[0] in endianness_tokens else "@" + format_string
+    )
 
     format_strings = re.split(f"(?=[{endianness_tokens}])", format_description)
 

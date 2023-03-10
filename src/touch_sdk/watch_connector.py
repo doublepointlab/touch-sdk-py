@@ -111,10 +111,6 @@ class WatchConnector:
             print("Approved connection")
             await self._on_approved_connection(client)
 
-    async def _wait_for_all_disconnected(self):
-        while self._connected_addresses:
-            await asyncio.sleep(0)
-
     async def _handle_disconnect_signal(self, device, name):
         print(f"Connection declined from {name}")
         await self.disconnect(device)

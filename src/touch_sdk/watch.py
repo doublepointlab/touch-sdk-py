@@ -2,9 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 from typing import Tuple, Optional
-import struct
-import re
-from itertools import accumulate, chain
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import unpack_chained
@@ -95,12 +92,12 @@ class Watch:
         await asyncio.gather(*subscriptions)
 
     async def _on_custom_data(self, characteristic, data):
-        format = self.custom_data.get(characteristic.uuid)
+        format_string = self.custom_data.get(characteristic.uuid)
 
-        if format is None:
+        if format_string is None:
             return
 
-        content = unpack_chained(format, data)
+        content = unpack_chained(format_string, data)
 
         self.on_custom_data(characteristic.uuid, content)
 

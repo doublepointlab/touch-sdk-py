@@ -45,10 +45,6 @@ class WatchConnector:
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
         await self._scanner.run()
 
-    def stop(self):
-        """TODO"""
-        return
-
     async def _on_scan_result(self, device, name):
 
         try:

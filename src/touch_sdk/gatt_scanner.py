@@ -25,38 +25,34 @@ class GattScanner:
         self.name_filter = name_filter
         self.scanner = None
         self._addresses = set()
-        self.start_event = asyncio.Event()
-        self.stop_event = asyncio.Event()
+        self._scanning = False
 
     async def run(self):
         """Blocking async event loop that starts the scanner.
 
         Useful when there are multiple async event loops in the program that
         need to be run at the same time."""
-        asyncio_atexit.register(self.stop_scanner)
 
+        logger.info("Starting scan")
+
+        scanner = BleakScanner(
+            self._detection_callback, service_uuids=[self.service_uuid]
+        )
+
+        await self.start_scanning()
+        await scanner.start()
         while True:
-            self.start_event.clear()
-            self.stop_event.clear()
-            logger.info("Starting scan")
+            await asyncio.sleep(0)
 
-            async with BleakScanner(
-                self._detection_callback, service_uuids=[self.service_uuid]
-            ) as _:
-                await self.stop_event.wait()
-
-            logger.info("Stopping scan")
-            await self.start_event.wait()
-
-    async def stop_scanner(self):
+    async def stop_scanning(self):
         """Stops the scanner."""
-        self.stop_event.set()
+        self._scanning = False
 
-    async def start_scanner(self):
-        """Start the scanner. This function should not be called before GattScanner.run
+    async def start_scanning(self):
+        """Start scanning. This function should not be called before GattScanner.run
         or GattScanner.start have been called."""
         self._addresses.clear()  # Reset found addresses list
-        self.start_event.set()
+        self._scanning = True
 
     def forget_address(self, address):
         """Forget address, i.e., act as if the device with that address had
@@ -64,6 +60,9 @@ class GattScanner:
         self._addresses.discard(address)
 
     async def _detection_callback(self, device, advertisement_data):
+        if not self._scanning:
+            return
+
         if device.address in self._addresses:
             return
         self._addresses.add(device.address)

@@ -76,6 +76,9 @@ class WatchConnector:
         self._approved_addresses.discard(address)
         self._scanner.forget_address(address)
 
+        if not self._approved_addresses:
+            await self._scanner.start_scanning()
+
     async def _on_protobuf(self, device, name, _, data):
         message = Update()
         message.ParseFromString(bytes(data))
@@ -97,16 +100,17 @@ class WatchConnector:
             return
         self._approved_addresses.add(device.address)
 
-        disconnect_tasks = [
-            self.disconnect(address)
-            for address in self._clients
-            if address != device.address
-        ]
-
-        await asyncio.gather(*disconnect_tasks)
-
         if (client := self._clients.get(device.address)) is not None:
             logger.info(f"Connection approved by ${name}")
+            await self._scanner.stop_scanning()
+
+            disconnect_tasks = [
+                self.disconnect(address)
+                for address in self._clients
+                if address != device.address
+            ]
+
+            await asyncio.gather(*disconnect_tasks)
             await self._on_approved_connection(client)
 
     async def _handle_disconnect_signal(self, device, name):

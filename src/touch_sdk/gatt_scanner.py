@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class GattScanner:
     """Scans for Bluetooth devices with service_uuid.
 
-    connection_handler gets called every time the scanner finds a new device.
+    on_scan_result gets called every time the scanner finds a new device.
     It should take parameters device and name.
 
     If name_filter is present, GattScanner will only find devices which contain

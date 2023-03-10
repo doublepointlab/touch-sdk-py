@@ -65,7 +65,6 @@ class GattScanner:
     async def _detection_callback(self, device, advertisement_data):
         if device in self._devices:
             return
-
         self._devices.add(device)
 
         name = (
@@ -81,5 +80,4 @@ class GattScanner:
                     return
 
             logger.info(f"Found {name}")
-
             await self.on_scan_result(device, name)

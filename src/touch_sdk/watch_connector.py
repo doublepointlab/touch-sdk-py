@@ -1,4 +1,3 @@
-import asyncio
 import sys
 import platform
 from functools import partial

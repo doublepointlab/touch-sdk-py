@@ -7,7 +7,7 @@ import re
 from itertools import accumulate, chain
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
-from touch_sdk.utils import pairwise
+from touch_sdk.utils import unpack_chained
 from touch_sdk.watch_connector import WatchConnector
 
 # pylint: disable=no-name-in-module
@@ -95,26 +95,12 @@ class Watch:
         await asyncio.gather(*subscriptions)
 
     async def _on_custom_data(self, characteristic, data):
-        fmt = self.custom_data.get(characteristic.uuid)
+        format = self.custom_data.get(characteristic.uuid)
 
-        if fmt is None:
+        if format is None:
             return
 
-        endianness_tokens = "@<>=!"
-
-        format_description = fmt if fmt[0] in endianness_tokens else "@" + fmt
-
-        format_strings = re.split(f"(?=[{endianness_tokens}])", format_description)
-
-        sizes = [struct.calcsize(fmt) for fmt in format_strings]
-        ranges = pairwise(accumulate(sizes))
-        data_pieces = [data[start:end] for start, end in ranges]
-
-        nested_content = [
-            struct.unpack(fmt, piece)
-            for piece, fmt in zip(data_pieces, format_strings[1:])
-        ]
-        content = tuple(chain(*nested_content))
+        content = unpack_chained(format, data)
 
         self.on_custom_data(characteristic.uuid, content)
 

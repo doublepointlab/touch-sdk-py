@@ -31,9 +31,12 @@ class WatchConnector:
         self._scanner = GattScanner(
             self._on_scan_result, INTERACTION_SERVICE, name_filter
         )
-        self._connected_addresses = set()
-        self._clients = {}
         self._approved_devices = set()
+        self._connected_addresses = set()
+        self._informed_addresses = (
+            set()
+        )  # Bluetooth addresses to which client info has successfully been sent
+        self._clients = {}
         self._on_approved_connection = on_approved_connection
         self._on_message = on_message
 
@@ -95,10 +98,10 @@ class WatchConnector:
         # Watch sent some other data, but no disconnect signal = watch accepted
         # the connection
         else:
-            await self._handle_approved_connection(device)
+            await self._handle_approved_connection(device, name)
             await self._on_message(message)
 
-    async def _handle_approved_connection(self, device):
+    async def _handle_approved_connection(self, device, name):
         if device in self._approved_devices:
             return
         self._approved_devices.add(device)
@@ -116,6 +119,9 @@ class WatchConnector:
         await self.disconnect(device)
 
     async def _send_client_info(self, client):
+        if client.address in self._informed_addresses:
+            return
+
         client_info = ClientInfo()
         client_info.appName = sys.argv[0]
         client_info.deviceName = platform.node()
@@ -123,3 +129,5 @@ class WatchConnector:
         input_update = InputUpdate()
         input_update.clientInfo.CopyFrom(client_info)
         await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
+
+        self._informed_addresses.add(client.address)

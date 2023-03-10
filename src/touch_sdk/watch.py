@@ -3,8 +3,6 @@ from enum import Enum
 import asyncio
 from typing import Tuple, Optional
 
-from bleak.exc import BleakError
-
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import unpack_chained
 from touch_sdk.watch_connector import WatchConnector
@@ -273,8 +271,4 @@ class Watch:
 
     async def _async_write_input_characteristic(self, characteristic, data, client):
         if client:
-            try:
-                await client.write_gatt_char(characteristic, data)
-            except BleakError:
-                # For example characteristic doesn't exist -> ignore
-                pass
+            await client.write_gatt_char(characteristic, data)

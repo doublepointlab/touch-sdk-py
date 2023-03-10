@@ -5,7 +5,6 @@ import logging
 
 import bleak
 from bleak import BleakClient
-from bleak.exc import BleakError
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT, INTERACTION_SERVICE
 from touch_sdk.gatt_scanner import GattScanner
@@ -120,10 +119,6 @@ class WatchConnector:
         input_update = InputUpdate()
         input_update.clientInfo.CopyFrom(client_info)
 
-        try:
-            await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
-        except BleakError:
-            # For example characteristic doesn't exist -> ignore
-            pass
+        await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
 
         self._informed_addresses.add(client.address)

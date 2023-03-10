@@ -46,7 +46,6 @@ class WatchConnector:
         await self._scanner.run()
 
     async def _on_scan_result(self, device, name):
-
         try:
             client = BleakClient(device)
 

@@ -34,8 +34,8 @@ class GattScanner:
         Useful when there are multiple async event loops in the program that
         need to be run at the same time."""
         asyncio_atexit.register(self.stop_scanner)
-        while True:
 
+        while True:
             self.start_event.clear()
             self.stop_event.clear()
             logger.info("Starting scan")
@@ -63,7 +63,6 @@ class GattScanner:
         self._devices.discard(device)
 
     async def _detection_callback(self, device, advertisement_data):
-
         if device in self._devices:
             return
 
@@ -77,7 +76,6 @@ class GattScanner:
         )
 
         if self.service_uuid in advertisement_data.service_uuids:
-
             if self.name_filter is not None:
                 if self.name_filter.lower() not in name.lower():
                     return

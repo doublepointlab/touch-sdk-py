@@ -75,7 +75,6 @@ class Watch:
         await self._connector.run()
 
     async def _on_approved_connection(self, client):
-
         self.client = client
 
         await self._fetch_info(client)

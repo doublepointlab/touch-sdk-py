@@ -32,7 +32,6 @@ class WatchConnector:
             self._on_scan_result, INTERACTION_SERVICE, name_filter
         )
         self._approved_addresses = set()
-        self._connected_addresses = set()
         self._informed_addresses = (
             set()
         )  # Bluetooth addresses to which client info has successfully been sent
@@ -80,7 +79,11 @@ class WatchConnector:
                 PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
             )
 
-        except (bleak.exc.BleakDBusError, bleak.exc.BleakError, asyncio.TimeoutError) as error:
+        except (
+            bleak.exc.BleakDBusError,
+            bleak.exc.BleakError,
+            asyncio.TimeoutError,
+        ) as error:
             # catches:
             # - ATT Invalid Handle error, coming from _send_client_info
             # - le-connection-abort-by-local, coming from client.connect
@@ -137,7 +140,7 @@ class WatchConnector:
 
             try:
                 await self._on_approved_connection(client)
-            except bleak.exc.BleakDBusError as error:
+            except bleak.exc.BleakDBusError as _:
                 # Catches "Unlikely GATT error"
                 self.disconnect(device.address)
 

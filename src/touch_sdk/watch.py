@@ -35,11 +35,14 @@ class Hand(Enum):
     RIGHT = 1
     LEFT = 2
 
+
 def _protovec2_to_tuple(vec):
     return (vec.x, vec.y)
 
+
 def _protovec3_to_tuple(vec):
     return (vec.x, vec.y, vec.z)
+
 
 def _protoquat_to_tuple(vec):
     return (vec.x, vec.y, vec.z, vec.w)

@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 from bleak import BleakScanner
-import asyncio_atexit
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""
 

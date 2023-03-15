@@ -51,7 +51,8 @@ class GattScanner:
     async def start_scanning(self):
         """Start scanning. This function should not be called before GattScanner.run
         or GattScanner.start have been called."""
-        self._addresses.clear()  # Reset found addresses list
+        if not self._scanning:
+            self._addresses.clear()  # Reset found addresses list
         self._scanning = True
 
     def forget_address(self, address):

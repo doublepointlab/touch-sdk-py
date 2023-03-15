@@ -59,10 +59,12 @@ class WatchConnector:
                 PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
             )
 
-        except bleak.exc.BleakDBusError as error:
-            # catching:
+        except (bleak.exc.BleakDBusError, bleak.exc.BleakError, asyncio.TimeoutError) as error:
+            # catches:
             # - ATT Invalid Handle error, coming from _send_client_info
             # - le-connection-abort-by-local, coming from client.connect
+            # - Characteristic not found, coming from_send_client_info or client.start_notify
+            # - asyncio timeout error, coming from client.connect
             logger.warning(f"{error}. Disconnecting {name}.")
             await self.disconnect(device.address)
 
@@ -111,7 +113,12 @@ class WatchConnector:
             ]
 
             await asyncio.gather(*disconnect_tasks)
-            await self._on_approved_connection(client)
+
+            try:
+                await self._on_approved_connection(client)
+            except bleak.exc.BleakDBusError as error:
+                # Catches "Unlikely GATT error"
+                self.disconnect(device.address)
 
     async def _handle_disconnect_signal(self, device, name):
         logger.info(f"Connection declined from {name}")

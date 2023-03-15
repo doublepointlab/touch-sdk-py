@@ -98,7 +98,7 @@ class WatchConnector:
             # - le-connection-abort-by-local, coming from client.connect
             # - Characteristic not found, coming from_send_client_info or client.start_notify
             # - asyncio timeout error, coming from client.connect
-            print(f"{error}. Disconnecting {name}.")
+            print(f"Disconnecting {name}. {error}")
             await self.disconnect(device.address)
 
     async def disconnect(self, address):

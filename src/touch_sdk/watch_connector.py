@@ -139,7 +139,7 @@ class WatchConnector:
         self._approved_addresses.add(device.address)
 
         if (client := self._clients.get(device.address)) is not None:
-            logger.info(f"Connection approved by ${name}")
+            logger.info(f"Connection approved by {name}")
             await self._scanner.stop_scanning()
 
             disconnect_tasks = [

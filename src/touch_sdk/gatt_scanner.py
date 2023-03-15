@@ -1,12 +1,8 @@
 import asyncio
-import logging
 
 from bleak import BleakScanner
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""
-
-logger = logging.getLogger(__name__)
-
 
 class GattScanner:
     """Scans for Bluetooth devices with service_uuid.
@@ -29,8 +25,6 @@ class GattScanner:
     async def run(self):
         """Run the scanner."""
 
-        logger.info("Starting scan")
-
         scanner = BleakScanner(
             self._detection_callback, service_uuids=[self.service_uuid]
         )
@@ -50,6 +44,7 @@ class GattScanner:
         if not self._scanning:
             self._addresses.clear()  # Reset found addresses list
         self._scanning = True
+        print("Scanning...")
 
     def forget_address(self, address):
         """Forget address, i.e., act as if the device with that address had
@@ -76,5 +71,5 @@ class GattScanner:
                 if self.name_filter.lower() not in name.lower():
                     return
 
-            logger.info(f"Found {name}")
+            print(f"Found {name}")
             await self.on_scan_result(device, name)

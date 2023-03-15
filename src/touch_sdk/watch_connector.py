@@ -1,7 +1,6 @@
 import asyncio
 import sys
 import platform
-import logging
 
 import bleak
 from bleak import BleakClient
@@ -16,8 +15,6 @@ from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, ClientInfo
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
-
-logger = logging.getLogger(__name__)
 
 
 class WatchConnector:
@@ -101,7 +98,7 @@ class WatchConnector:
             # - le-connection-abort-by-local, coming from client.connect
             # - Characteristic not found, coming from_send_client_info or client.start_notify
             # - asyncio timeout error, coming from client.connect
-            logger.warning(f"{error}. Disconnecting {name}.")
+            print(f"{error}. Disconnecting {name}.")
             await self.disconnect(device.address)
 
     async def disconnect(self, address):
@@ -139,7 +136,7 @@ class WatchConnector:
         self._approved_addresses.add(device.address)
 
         if (client := self._clients.get(device.address)) is not None:
-            logger.info(f"Connection approved by {name}")
+            print(f"Connection approved by {name}")
             await self._scanner.stop_scanning()
 
             disconnect_tasks = [
@@ -157,7 +154,7 @@ class WatchConnector:
                 self.disconnect(device.address)
 
     async def _handle_disconnect_signal(self, device, name):
-        logger.info(f"Connection declined from {name}")
+        print(f"Connection declined from {name}")
         await self.disconnect(device.address)
 
     async def _send_client_info(self, client):

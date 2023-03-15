@@ -151,7 +151,7 @@ class WatchConnector:
                 await self._on_approved_connection(client)
             except bleak.exc.BleakDBusError as _:
                 # Catches "Unlikely GATT error"
-                self.disconnect(device.address)
+                await self.disconnect(device.address)
 
     async def _handle_disconnect_signal(self, device, name):
         print(f"Connection declined from {name}")

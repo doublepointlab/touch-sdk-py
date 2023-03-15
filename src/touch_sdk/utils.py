@@ -17,6 +17,12 @@ def pairwise(iterable):
     return zip(first, second)
 
 
+def partial_async(func, *args, **kwargs):
+    async def wrapped_async(*args_, **kwargs_):
+        return await func(*args, *args_, **kwargs, **kwargs_)
+    return wrapped_async
+
+
 def unpack_chained(format_string, data):
     """
     Unpack struct data with a format string that may contain multiple

@@ -1,12 +1,12 @@
 import asyncio
 import sys
 import platform
-from functools import partial
 import logging
 
 import bleak
 from bleak import BleakClient
 
+from touch_sdk.utils import partial_async
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT, INTERACTION_SERVICE
 from touch_sdk.gatt_scanner import GattScanner
 
@@ -88,7 +88,7 @@ class WatchConnector:
             await self._send_client_info(client)
 
             await client.start_notify(
-                PROTOBUF_OUTPUT, partial(self._on_protobuf, device, name)
+                PROTOBUF_OUTPUT, partial_async(self._on_protobuf, device, name)
             )
 
         except (

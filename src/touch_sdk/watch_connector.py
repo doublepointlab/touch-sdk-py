@@ -21,11 +21,23 @@ logger = logging.getLogger(__name__)
 
 
 class WatchConnector:
-    """TODO"""
+    """Manages connections to watches.
+
+    Handles the connection lifecycle of any number of watches, including:
+    - connecting
+    - getting data
+    - handling connection approval
+    - disconnecting (either soft or hard)
+
+    Passes data from an approved connection to a callback (usually provided to it by a
+    Watch instance).
+
+    Discovering the Bluetooth devices is delegated to a GattScanner instance.
+    """
 
     def __init__(self, on_approved_connection, on_message, name_filter=None):
-        """Creates a new instance of Watch. Does not start scanning for Bluetooth
-        devices. Use Watch.start to enter the scanning and connection event loop.
+        """Creates a new instance of WatchConnector. Does not start scanning for Bluetooth
+        devices. Use WatchConnector.run to enter the scanning and connection event loop.
 
         Optional name_filter connects only to watches with that name (case insensitive)"""
         self._scanner = GattScanner(
@@ -41,7 +53,7 @@ class WatchConnector:
         self._on_message = on_message
 
     async def run(self):
-        """Asynchronous blocking event loop that starts the Bluetooth scanner.
+        """Asynchronous blocking event loop that starts the Bluetooth scanner and connection loop.
 
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
         await self._start_connection_monitor()

@@ -18,7 +18,7 @@ class GattScanner:
     that string in their name."""
 
     def __init__(self, on_scan_result, service_uuid, name_filter=None):
-        """Creates a new instance of BLEConnector. Does not start the scanning."""
+        """Creates a new instance of GattScanner. Does not start the scanning."""
         self.on_scan_result = on_scan_result
         self.service_uuid = service_uuid
         self.name_filter = name_filter
@@ -27,10 +27,7 @@ class GattScanner:
         self._scanning = False
 
     async def run(self):
-        """Blocking async event loop that starts the scanner.
-
-        Useful when there are multiple async event loops in the program that
-        need to be run at the same time."""
+        """Run the scanner."""
 
         logger.info("Starting scan")
 
@@ -44,12 +41,12 @@ class GattScanner:
             await asyncio.sleep(0)
 
     async def stop_scanning(self):
-        """Stops the scanner."""
+        """Stop scanning."""
         self._scanning = False
 
     async def start_scanning(self):
         """Start scanning. This function should not be called before GattScanner.run
-        or GattScanner.start have been called."""
+        has been called."""
         if not self._scanning:
             self._addresses.clear()  # Reset found addresses list
         self._scanning = True

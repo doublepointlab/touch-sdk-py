@@ -36,6 +36,7 @@ class WatchConnector:
         self._informed_addresses = (
             set()
         )  # Bluetooth addresses to which client info has successfully been sent
+        self._tasks = set()
         self._clients = {}
         self._on_approved_connection = on_approved_connection
         self._on_message = on_message
@@ -44,7 +45,27 @@ class WatchConnector:
         """Asynchronous blocking event loop that starts the Bluetooth scanner.
 
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
+        await self._start_connection_monitor()
         await self._scanner.run()
+
+    async def _start_connection_monitor(self):
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(self._monitor_connections())
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+
+    async def _monitor_connections(self):
+        while True:
+            # Make sure disconnect is called for all clients for which
+            # is_connected is False (because of a physical disconnect, for example)
+            disconnect_tasks = [
+                self.disconnect(address)
+                for address, client in self._clients.items()
+                if not client.is_connected
+            ]
+
+            await asyncio.gather(*disconnect_tasks)
+            await asyncio.sleep(2)
 
     async def _on_scan_result(self, device, name):
         try:

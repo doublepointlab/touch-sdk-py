@@ -18,6 +18,7 @@ def pairwise(iterable):
 
 
 def partial_async(func, *args, **kwargs):
+    """functools.partial, but for async functions"""
     async def wrapped_async(*args_, **kwargs_):
         return await func(*args, *args_, **kwargs, **kwargs_)
     return wrapped_async

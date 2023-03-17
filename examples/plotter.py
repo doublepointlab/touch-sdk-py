@@ -1,3 +1,6 @@
+# To use this example, make sure to install extra dependencies:
+# pip install matplotlib numpy
+
 from threading import Thread
 from queue import Queue, Empty
 from collections import deque

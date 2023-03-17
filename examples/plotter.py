@@ -61,7 +61,8 @@ if __name__ == "__main__":
     gyro_data = deque()
 
     _ = FuncAnimation(
-        fig, anim, fargs=(watch, ax, lines, gyro_data), interval=1, blit=True
+        fig, anim, fargs=(watch, ax, lines, gyro_data), interval=1, blit=True,
+        cache_frame_data=False
     )
 
     plt.show()

@@ -1,3 +1,4 @@
 [MAIN]
 good-names=x,y
 ignore=protobuf
+disable=logging-fstring-interpolation

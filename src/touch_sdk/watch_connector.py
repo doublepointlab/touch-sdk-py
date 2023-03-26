@@ -76,30 +76,43 @@ class WatchConnector:
             await asyncio.sleep(2)
 
     async def _on_scan_result(self, device, name):
+        client = BleakClient(device)
+        address = device.address
+
         try:
-            client = BleakClient(device)
-
             await client.connect()
-            self._clients[device.address] = client
+        except asyncio.exceptions.TimeoutError:
+            await self.disconnect(address)
+            return
 
+        self._clients[address] = client
+
+        try:
             await self._send_client_info(client)
+        except bleak.exc.BleakDBusError:
+            # [org.bluez.Error.Failed] Operation failed with ATT error:
+            # 0x01 (Invalid Handle)
+            #
+            # This happens if the client is not already approved by the
+            # watch before this connection (= connection dialog shows up).
+            # However, the client info seems to still end up to the watch,
+            # so we don't need to abort the handshake.
+            pass
 
+        try:
             await client.start_notify(
                 PROTOBUF_OUTPUT, partial_async(self._on_protobuf, device, name)
             )
-
-        except (
-            bleak.exc.BleakDBusError,
-            bleak.exc.BleakError,
-            asyncio.TimeoutError,
-        ) as error:
-            # catches:
-            # - ATT Invalid Handle error, coming from _send_client_info
-            # - le-connection-abort-by-local, coming from client.connect
-            # - Characteristic not found, coming from_send_client_info or client.start_notify
-            # - asyncio timeout error, coming from client.connect
-            print(f"Disconnecting {name}. {error}")
-            await self.disconnect(device.address)
+        except bleak.exc.BleakDBusError:
+            # [org.bluez.Error.NotConnected] Not Connected
+            #
+            # Sometimes (~50%) Bleak thinks the client is connected even though
+            # BlueZ thinks it's not. We could try to reconnect, but that messes
+            # up with _monitor_connections. Easier to just give up and try again
+            # through the scanner, even though it adds a delay and a bit of
+            # noise to the console.
+            print('Connecting failed, trying again')
+            await self.disconnect(address)
 
     async def disconnect(self, address):
         """Disconnect the client associated with the argument device if it exists,

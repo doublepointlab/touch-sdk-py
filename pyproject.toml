@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Human Machine Interfaces",
 ]
 dependencies = [
-    "bleak==0.19.5",
+    "bleak==0.20.1",
     "protobuf==3.20.0",
     "asyncio-atexit==1.0.1",
 ]

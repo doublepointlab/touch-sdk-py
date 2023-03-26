@@ -87,17 +87,7 @@ class WatchConnector:
 
         self._clients[address] = client
 
-        try:
-            await self._send_client_info(client)
-        except bleak.exc.BleakDBusError:
-            # [org.bluez.Error.Failed] Operation failed with ATT error:
-            # 0x01 (Invalid Handle)
-            #
-            # This happens if the client is not already approved by the
-            # watch before this connection (= connection dialog shows up).
-            # However, the client info seems to still end up to the watch,
-            # so we don't need to abort the handshake.
-            pass
+        await self._send_client_info(client)
 
         try:
             await client.start_notify(
@@ -181,6 +171,19 @@ class WatchConnector:
         input_update = InputUpdate()
         input_update.clientInfo.CopyFrom(client_info)
 
-        await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString())
+        try:
+            await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString(), True)
+        except bleak.exc.BleakDBusError:
+            # [org.bluez.Error.Failed] Operation failed with ATT error:
+            # 0x01 (Invalid Handle)
+            #
+            # This happens if the client is not already approved by the
+            # watch before this connection (= connection dialog shows up).
+            # However, the client info seems to still end up to the watch,
+            # so we don't need to abort the handshake.
+            pass
+        except bleak.exc.BleakError:
+            # macOS says "Failed to write characteristic" but it succeeds
+            pass
 
         self._informed_addresses.add(client.address)

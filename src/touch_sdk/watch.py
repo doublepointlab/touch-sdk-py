@@ -280,4 +280,4 @@ class Watch:
 
     async def _async_write_input_characteristic(self, characteristic, data, client):
         if client:
-            await client.write_gatt_char(characteristic, data)
+            await client.write_gatt_char(characteristic, data, True)

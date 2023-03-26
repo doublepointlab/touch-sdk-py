@@ -185,22 +185,6 @@ class Watch:
     def on_arm_direction_change(self, delta_x: float, delta_y: float):
         """Gyroscope-based raycasting output. Called after sensor updates."""
 
-    def on_custom_data(self, uuid: str, content: Tuple):
-        """Receive data from custom characteristics"""
-
-    def trigger_haptics(self, intensity: float, duration_ms: int):
-        """Trigger vibration haptics on the watch.
-
-        intensity: between 0 and 1
-        duration_ms: between 0 and 5000"""
-        input_update = self._create_haptics_update(intensity, duration_ms)
-        self._write_input_characteristic(input_update.SerializeToString())
-
-    def on_sensors(self, sensor_frame: SensorFrame):
-        """Callback when accelerometer, gyroscope, gravity, orientation, and
-        magnetic field are changed. Guaranteed to have values for everything but
-        magnetic field information in every update."""
-
     def on_pressure(self, pressure: float):
         """Called when new pressure value (in hectopascals) is received."""
 

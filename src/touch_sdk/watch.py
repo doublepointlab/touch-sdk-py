@@ -135,6 +135,9 @@ class Watch:
         if message.HasField("info"):
             self._proto_on_info(message.info)
 
+        if message.pressure != 0.0:
+            self.on_pressure(message.pressure)
+
     # Sensor events
 
     def _proto_on_sensors(self, frames, timestamp):
@@ -181,6 +184,9 @@ class Watch:
 
     def on_arm_direction_change(self, delta_x: float, delta_y: float):
         """Gyroscope-based raycasting output. Called after sensor updates."""
+
+    def on_pressure(self, pressure: float):
+        """Called when new pressure value (in hectopascals) is received."""
 
     # Gestures
 

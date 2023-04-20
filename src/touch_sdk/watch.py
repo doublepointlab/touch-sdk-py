@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 from typing import Tuple, Optional
+import asyncio_atexit
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import unpack_chained
@@ -70,6 +71,7 @@ class Watch:
 
         self.client = None
         self.hand = Hand.NONE
+        self.stop_event = asyncio.Event()
 
     def start(self):
         """Blocking event loop that starts the Bluetooth scanner
@@ -80,11 +82,18 @@ class Watch:
         except KeyboardInterrupt:
             pass
 
+    def stop(self):
+        self.stop_event.set()
+
     async def run(self):
         """Asynchronous blocking event loop that starts the Bluetooth scanner.
 
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
-        await self._connector.run()
+        asyncio_atexit.register(self.stop)
+
+        await self._connector.start()
+        await self.stop_event.wait()
+        await self._connector.stop()
 
     async def _on_approved_connection(self, client):
         self.client = client

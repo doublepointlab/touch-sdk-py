@@ -49,12 +49,20 @@ class WatchConnector:
         self._on_approved_connection = on_approved_connection
         self._on_message = on_message
 
-    async def run(self):
+    async def start(self):
         """Asynchronous blocking event loop that starts the Bluetooth scanner and connection loop.
 
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
         await self._start_connection_monitor()
-        await self._scanner.run()
+        await self._scanner.start()
+
+    async def stop(self):
+        await self._scanner.stop_scanning()
+        disconnect_tasks = [
+            self._disconnect(address, resume=False)
+            for address, client in self._clients.items()
+        ]
+        await asyncio.gather(*disconnect_tasks)
 
     async def _start_connection_monitor(self):
         loop = asyncio.get_running_loop()
@@ -67,7 +75,7 @@ class WatchConnector:
             # Make sure disconnect is called for all clients for which
             # is_connected is False (because of a physical disconnect, for example)
             disconnect_tasks = [
-                self.disconnect(address)
+                self._disconnect(address)
                 for address, client in self._clients.items()
                 if not client.is_connected
             ]
@@ -82,7 +90,7 @@ class WatchConnector:
         try:
             await client.connect()
         except asyncio.exceptions.TimeoutError:
-            await self.disconnect(address)
+            await self._disconnect(address)
             return
 
         self._clients[address] = client
@@ -101,20 +109,17 @@ class WatchConnector:
             # up with _monitor_connections. Easier to just give up and try again
             # through the scanner, even though it adds a delay and a bit of
             # noise to the console.
-            print('Connecting failed, trying again')
-            await self.disconnect(address)
+            print("Connecting failed, trying again")
+            await self._disconnect(address)
 
-    async def disconnect(self, address):
-        """Disconnect the client associated with the argument device if it exists,
-        and clean up.
-        """
+    async def _disconnect(self, address, resume=True):
         if (client := self._clients.pop(address, None)) is not None:
             await client.disconnect()
 
         self._approved_addresses.discard(address)
         self._scanner.forget_address(address)
 
-        if not self._approved_addresses:
+        if not self._approved_addresses and resume:
             await self._scanner.start_scanning()
 
     async def _on_protobuf(self, device, name, _, data):
@@ -143,7 +148,7 @@ class WatchConnector:
             await self._scanner.stop_scanning()
 
             disconnect_tasks = [
-                self.disconnect(address)
+                self._disconnect(address)
                 for address in self._clients
                 if address != device.address
             ]
@@ -154,11 +159,11 @@ class WatchConnector:
                 await self._on_approved_connection(client)
             except bleak.exc.BleakDBusError as _:
                 # Catches "Unlikely GATT error"
-                await self.disconnect(device.address)
+                await self._disconnect(device.address)
 
     async def _handle_disconnect_signal(self, device, name):
         print(f"Connection declined from {name}")
-        await self.disconnect(device.address)
+        await self._disconnect(device.address)
 
     async def _send_client_info(self, client):
         if client.address in self._informed_addresses:

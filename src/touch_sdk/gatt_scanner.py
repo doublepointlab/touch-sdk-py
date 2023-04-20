@@ -22,8 +22,8 @@ class GattScanner:
         self._addresses = set()
         self._scanning = False
 
-    async def run(self):
-        """Run the scanner."""
+    async def start(self):
+        """Start the scanner."""
 
         scanner = BleakScanner(
             self._detection_callback, service_uuids=[self.service_uuid]
@@ -31,8 +31,6 @@ class GattScanner:
 
         await self.start_scanning()
         await scanner.start()
-        while True:
-            await asyncio.sleep(0)
 
     async def stop_scanning(self):
         """Stop scanning."""

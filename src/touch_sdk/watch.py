@@ -66,7 +66,8 @@ class Watch:
         )
 
         self._client = None
-        self._stop_event = asyncio.Event()
+        self._stop_event = None
+
         self._event_loop = None
 
         self.custom_data = None
@@ -94,6 +95,8 @@ class Watch:
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
 
         self._event_loop = asyncio.get_running_loop()
+        self._stop_event = asyncio.Event()
+
         asyncio_atexit.register(self.stop)
 
         await self._connector.start()

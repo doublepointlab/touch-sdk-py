@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 from typing import Tuple, Optional
+import asyncio_atexit
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.utils import unpack_chained
@@ -64,11 +65,15 @@ class Watch:
             self._on_approved_connection, self._on_protobuf, name_filter
         )
 
+        self._client = None
+        self._stop_event = None
+
+        self._event_loop = None
+
         self.custom_data = None
         if hasattr(self.__class__, "custom_data"):
             self.custom_data = self.__class__.custom_data
 
-        self.client = None
         self.hand = Hand.NONE
 
     def start(self):
@@ -80,14 +85,26 @@ class Watch:
         except KeyboardInterrupt:
             pass
 
+    def stop(self):
+        """Stop the watch, disconnecting any connected devices."""
+        self._stop_event.set()
+
     async def run(self):
         """Asynchronous blocking event loop that starts the Bluetooth scanner.
 
         Makes it possible to run multiple async event loops with e.g. asyncio.gather."""
-        await self._connector.run()
+
+        self._event_loop = asyncio.get_running_loop()
+        self._stop_event = asyncio.Event()
+
+        asyncio_atexit.register(self.stop)
+
+        await self._connector.start()
+        await self._stop_event.wait()
+        await self._connector.stop()
 
     async def _on_approved_connection(self, client):
-        self.client = client
+        self._client = client
 
         await self._fetch_info(client)
         await self._subscribe_to_custom_characteristics(client)
@@ -258,7 +275,7 @@ class Watch:
         intensity: between 0 and 1
         duration_ms: between 0 and 5000"""
         input_update = self._create_haptics_update(intensity, duration_ms)
-        self._write_input_characteristic(input_update.SerializeToString(), self.client)
+        self._write_input_characteristic(input_update.SerializeToString(), self._client)
 
     @staticmethod
     def _create_haptics_update(intensity, length):
@@ -273,10 +290,10 @@ class Watch:
         return input_update
 
     def _write_input_characteristic(self, data, client):
-        loop = asyncio.get_running_loop()
-        loop.create_task(
-            self._async_write_input_characteristic(PROTOBUF_INPUT, data, client)
-        )
+        if self._event_loop is not None:
+            self._event_loop.create_task(
+                self._async_write_input_characteristic(PROTOBUF_INPUT, data, client)
+            )
 
     async def _async_write_input_characteristic(self, characteristic, data, client):
         if client:

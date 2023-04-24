@@ -1,5 +1,3 @@
-import asyncio
-
 from bleak import BleakScanner
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""

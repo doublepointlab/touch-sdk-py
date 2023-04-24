@@ -85,6 +85,7 @@ class Watch:
             pass
 
     def stop(self):
+        """Stop the watch, disconnecting any connected devices."""
         self._stop_event.set()
 
     async def run(self):

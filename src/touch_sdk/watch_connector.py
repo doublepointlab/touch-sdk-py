@@ -57,6 +57,7 @@ class WatchConnector:
         await self._scanner.start()
 
     async def stop(self):
+        """Stop the connector, disconnecting any connected devices."""
         await self._scanner.stop_scanning()
         disconnect_tasks = [
             self._disconnect(address, resume=False)

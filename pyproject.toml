@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "touch-sdk"
-version = "0.6.6"
+version = "0.6.7"
 description = "Doublepoint Touch SDK"
 license = "ISC"
 authors = [
@@ -31,5 +31,5 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/port6io/touch-sdk-py#readme"
-"Bug Tracker" = "https://github.com/port6io/touch-sdk-py/issues"
+"Homepage" = "https://github.com/doublepointlab/touch-sdk-py#readme"
+"Bug Tracker" = "https://github.com/doublepointlab/touch-sdk-py/issues"

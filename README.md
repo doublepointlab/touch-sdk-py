@@ -45,6 +45,12 @@ def on_tap(self):
     print('tap')
 ```
 
+### Gesture probability
+```python
+def on_gesture_probability(self, prob: float):
+    print(prob)
+```
+
 ### Sensors
 ```python
 def on_sensors(self, sensors):

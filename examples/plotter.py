@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 from touch_sdk import Watch
+import logging
+# Get helpful log info
+logging.basicConfig(level=logging.INFO)
 
 
 class MyWatch(Watch):

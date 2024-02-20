@@ -1,4 +1,6 @@
 from bleak import BleakScanner
+import logging
+logger = logging.getLogger(__file__)
 
 __doc__ = """Scans for Bluetooth devices with a given GATT service UUID."""
 
@@ -40,7 +42,7 @@ class GattScanner:
         if not self._scanning:
             self._addresses.clear()  # Reset found addresses list
         self._scanning = True
-        print("Scanning...")
+        logger.info("Scanning...")
 
     def forget_address(self, address):
         """Forget address, i.e., act as if the device with that address had
@@ -67,5 +69,5 @@ class GattScanner:
                 if self.name_filter.lower() not in name.lower():
                     return
 
-            print(f"Found {name}")
+            logger.info(f"Found {name}")
             await self.on_scan_result(device, name)

@@ -1,4 +1,5 @@
 import base64
+from platform import platform
 import select
 import binascii
 import sys
@@ -79,7 +80,10 @@ class StreamWatch:
 
     @staticmethod
     async def ainput() -> str:
-        return await asyncio.to_thread(StreamWatch.tinput)
+        if platform() == "Windows":
+            return await asyncio.to_thread(sys.stdin.readline)
+        else:
+            return await asyncio.to_thread(StreamWatch.tinput)
 
     async def _input_loop(self):
         while self._stop_event is not None and not self._stop_event.is_set():

@@ -104,10 +104,10 @@ class StreamWatch:
 
     async def _output(self, data):
         if self._stop_event and not self._stop_event.is_set():
+            data = base64.b64encode(data) + b"\n"
             await asyncio.to_thread(
-                partial(sys.stdout.buffer.write, base64.b64encode(data))
+                partial(sys.stdout.buffer.write, data)
             )
-            await asyncio.to_thread(print)
 
     async def _on_protobuf(self, pf: Update):
         """Bit simpler to let connector parse and serialize protobuf again

@@ -1,4 +1,6 @@
 import base64
+import select
+import binascii
 import sys
 import asyncio
 import asyncio_atexit
@@ -7,6 +9,9 @@ from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.watch_connector import WatchConnector
 
 from touch_sdk.protobuf.watch_output_pb2 import Update  # type: ignore
+import logging
+
+logger = logging.getLogger(__file__)
 
 
 __doc__ = """Protobuffers streamed in base64 through stdin/stdout"""
@@ -59,31 +64,49 @@ class StreamWatch:
 
         await self._connector.start()
         await self._input_loop()
+        await self._stop_event.wait()
         await self._connector.stop()
 
     @staticmethod
+    def tinput() -> str:
+        rfds, _, _ = select.select([sys.stdin], [], [], 1)
+        if rfds:
+            logger.debug("input!")
+            return rfds[0].readline()
+        else:
+            logger.debug("no input")
+            return ""
+
+    @staticmethod
     async def ainput() -> str:
-        return await asyncio.to_thread(sys.stdin.readline)
+        return await asyncio.to_thread(StreamWatch.tinput)
 
     async def _input_loop(self):
         while self._stop_event is not None and not self._stop_event.is_set():
             str = await StreamWatch.ainput()
-            self._input(str.strip())
+            str = str.strip()
+            if str:
+                self._input(str)
 
     def _on_protobuf(self, pf: Update):
         """Bit simpler to let connector parse and serialize protobuf again
         than to override connector behaviour.
         """
+        logger.debug("_on_protobuf")
         self._output(pf.SerializeToString())
 
     def _input(self, base64data):
         """Write protobuf data to input characteristic"""
-        self._write_input_characteristic(base64.b64decode(base64data), self._client)
+        try:
+            self._write_input_characteristic(base64.b64decode(base64data), self._client)
+        except binascii.Error as e:
+            logger.error("Decode err: %s", e)
 
     def _output(self, data):
         print(base64.b64encode(data))
 
     async def _on_approved_connection(self, client):
+        logger.debug("_on_approved_connection")
         self._client = client
         await self._fetch_info(client)
 
@@ -104,7 +127,6 @@ class StreamWatch:
 
 def main():
     from argparse import ArgumentParser
-    import logging
 
     parser = ArgumentParser()
     parser.add_argument("--name-filter", type=str, default=None)

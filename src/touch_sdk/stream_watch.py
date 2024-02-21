@@ -1,5 +1,5 @@
 import base64
-from platform import platform
+from functools import partial
 import select
 import binascii
 import sys
@@ -46,10 +46,12 @@ class StreamWatch:
         try:
             asyncio.run(self.run())
         except KeyboardInterrupt:
+            logger.debug("interrupted")
             pass
 
     def stop(self):
         """Stop the watch, disconnecting any connected devices."""
+        logger.debug("stop")
         if self._stop_event is not None:
             self._stop_event.set()
 
@@ -64,40 +66,34 @@ class StreamWatch:
         asyncio_atexit.register(self.stop)
 
         await self._connector.start()
-        await self._input_loop()
+        task1 = asyncio.create_task(self._input_loop())  # Wrap coroutines in tasks
+        task2 = asyncio.create_task(self._wait_and_stop())
+        _, pending = await asyncio.wait(
+            [task2, task1],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for p in pending:
+            p.cancel()
+
+    async def _wait_and_stop(self):
+        assert self._stop_event
         await self._stop_event.wait()
         await self._connector.stop()
 
-    @staticmethod
-    def tinput() -> str:
-        rfds, _, _ = select.select([sys.stdin], [], [], 1)
-        if rfds:
-            logger.debug("input!")
-            return rfds[0].readline()
-        else:
-            logger.debug("no input")
-            return ""
-
-    @staticmethod
-    async def ainput() -> str:
-        if platform() == "Windows":
-            return await asyncio.to_thread(sys.stdin.readline)
-        else:
-            return await asyncio.to_thread(StreamWatch.tinput)
-
     async def _input_loop(self):
-        while self._stop_event is not None and not self._stop_event.is_set():
-            str = await StreamWatch.ainput()
-            str = str.strip()
-            if str:
-                self._input(str)
+        loop = asyncio.get_running_loop()
+        reader = asyncio.StreamReader()
+        protocol = asyncio.StreamReaderProtocol(reader)
 
-    def _on_protobuf(self, pf: Update):
-        """Bit simpler to let connector parse and serialize protobuf again
-        than to override connector behaviour.
-        """
-        logger.debug("_on_protobuf")
-        self._output(pf.SerializeToString())
+        # Connect the standard input to the StreamReader protocol
+        await loop.connect_read_pipe(lambda: protocol, sys.stdin)
+
+        # Read lines from stdin asynchronously
+        while self._stop_event is not None and not self._stop_event.is_set():
+            line = await reader.readline()
+            line = line.strip()
+            if line:
+                self._input(line)
 
     def _input(self, base64data):
         """Write protobuf data to input characteristic"""
@@ -106,8 +102,19 @@ class StreamWatch:
         except binascii.Error as e:
             logger.error("Decode err: %s", e)
 
-    def _output(self, data):
-        print(base64.b64encode(data))
+    async def _output(self, data):
+        if self._stop_event and not self._stop_event.is_set():
+            await asyncio.to_thread(
+                partial(sys.stdout.buffer.write, base64.b64encode(data))
+            )
+            await asyncio.to_thread(print)
+
+    async def _on_protobuf(self, pf: Update):
+        """Bit simpler to let connector parse and serialize protobuf again
+        than to override connector behaviour.
+        """
+        logger.debug("_on_protobuf")
+        await self._output(pf.SerializeToString())
 
     async def _on_approved_connection(self, client):
         logger.debug("_on_approved_connection")
@@ -116,7 +123,7 @@ class StreamWatch:
 
     async def _fetch_info(self, client):
         data = await client.read_gatt_char(PROTOBUF_OUTPUT)
-        self._output(data)
+        await self._output(data)
 
     def _write_input_characteristic(self, data, client):
         if self._event_loop is not None:

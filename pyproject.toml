@@ -11,7 +11,7 @@ authors = [
     { name="Doublepoint", email="developer@doublepoint.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["bluetooth"]
 classifiers = [
     "Development Status :: 3 - Alpha",

@@ -138,6 +138,11 @@ class StreamWatch:
 
 def main():
     from argparse import ArgumentParser
+    import signal
+
+    def rs(*_):
+        raise KeyboardInterrupt()
+    signal.signal(signal.SIGTERM, rs)
 
     parser = ArgumentParser()
     parser.add_argument("--name-filter", type=str, default=None)

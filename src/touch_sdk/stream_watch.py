@@ -106,12 +106,15 @@ class StreamWatch:
         except binascii.Error as e:
             logger.error("Decode err: %s", e)
 
+    @staticmethod
+    def _print_data(data):
+        sys.stdout.buffer.write(data)
+        sys.stdout.flush()
+
     async def _output(self, data):
         if self._stop_event and not self._stop_event.is_set():
             data = base64.b64encode(data) + b"\n"
-            await asyncio.to_thread(
-                partial(sys.stdout.buffer.write, data)
-            )
+            await asyncio.to_thread(partial(StreamWatch._print_data, data))
 
     async def _on_protobuf(self, pf: Update):
         """Bit simpler to let connector parse and serialize protobuf again
@@ -146,6 +149,7 @@ def main():
 
     def rs(*_):
         raise KeyboardInterrupt()
+
     signal.signal(signal.SIGTERM, rs)
 
     parser = ArgumentParser()

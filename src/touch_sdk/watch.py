@@ -146,7 +146,9 @@ class Watch:
     async def _on_protobuf(self, message):
 
         for entry in message.probabilities:
-            if entry.label == GestureType.NONE:
+            if entry.label == GestureType.PINCH_HOLD or entry.label == GestureType.PINCH_TAP:
+                self.on_gesture_probability(entry.probability)
+            elif entry.label == GestureType.NONE:
                 self.on_gesture_probability(1 - entry.probability)
 
         self._proto_on_sensors(message.sensorFrames, message.unixTime)

@@ -45,12 +45,6 @@ def on_tap(self):
     print('tap')
 ```
 
-### Gesture probability
-```python
-def on_gesture_probability(self, prob: float):
-    print(prob)
-```
-
 ### Sensors
 ```python
 def on_sensors(self, sensors):
@@ -89,7 +83,15 @@ Outputs +1 for clockwise and -1 for counter-clockwise.
 def on_back_button(self):
     print('back button')
 ```
+
 Called when the back button is pressed and released. Wear OS does not support separate button down and button up events for the back button.
+
+### Probability output
+```python
+def on_gesture_probability(self, prob):
+    print(f'probability: {prob}')
+```
+Triggered when a gesture detection model produces an output. See `examples/pinch_probability.py` for a complete example.
 
 ### Haptics
 The `trigger_haptics(intensity, length)` method can be used to initiate one-shot haptic effects on the watch. For example, to drive the haptics motor for 300 ms at 100% intensity on `watch`, call `watch.trigger_haptics(1.0, 300)`.

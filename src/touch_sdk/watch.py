@@ -75,7 +75,48 @@ class Watch:
         if hasattr(self.__class__, "custom_data"):
             self.custom_data = self.__class__.custom_data
 
-        self.hand = Hand.NONE
+        self._hand = Hand.NONE
+        self._screen_resolution = (0, 0)
+        self._haptics_available = False
+
+        self._app_version = ""
+        self._app_id = ""
+        self._device_name = ""
+        self._manufacturer = ""
+        self._model_info = ""
+
+    @property
+    def hand(self):
+        return self._hand
+
+    @property
+    def screen_resolution(self):
+        return self._screen_resolution
+
+    @property
+    def haptics_available(self):
+        return self._haptics_available
+
+    @property
+    def app_version(self):
+        return self._app_version
+
+    @property
+    def app_id(self):
+        return self._app_id
+
+    @property
+    def device_name(self):
+        return self._device_name
+
+    @property
+    def manufacturer(self):
+        return self._manufacturer
+
+    @property
+    def model_info(self):
+        return self._model_info
+
 
     def start(self):
         """Blocking event loop that starts the Bluetooth scanner
@@ -115,7 +156,7 @@ class Watch:
         update = Update()
         update.ParseFromString(bytes(data))
         if update.HasField("info"):
-            self.hand = Hand(update.info.hand)
+            self._proto_on_info(update.info)
 
     # Custom characteristics
 
@@ -200,7 +241,7 @@ class Watch:
         av_x = -sensor_frame.angular_velocity[2]  # right = +
         av_y = -sensor_frame.angular_velocity[1]  # down = +
 
-        handedness_scale = -1 if self.hand == Hand.LEFT else 1
+        handedness_scale = -1 if self._hand == Hand.LEFT else 1
 
         delta_x = av_x * grav[2] + av_y * grav[1]
         delta_y = handedness_scale * (av_y * grav[2] - av_x * grav[1])
@@ -276,7 +317,25 @@ class Watch:
     # Info
 
     def _proto_on_info(self, info):
-        self.hand = Hand(info.hand)
+        self._hand = Hand(info.hand)
+
+        if (screen_resolution := info.touchScreenResolution) is not None:
+            self._screen_resolution = (screen_resolution.x, screen_resolution.y)
+
+        if haptics_available := info.hapticsAvailable:
+            self._haptics_available = haptics_available
+
+        if app_version := info.appVersion:
+            self._app_version = app_version
+
+        if app_id := info.appId:
+            self._app_id = app_id
+
+        if device_name := info.deviceName:
+            self._device_name = device_name
+
+        if manufacturer := info.manufacturer:
+            self._manufacturer = manufacturer
 
     # Haptics
 

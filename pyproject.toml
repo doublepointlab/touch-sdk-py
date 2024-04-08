@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "touch-sdk"
-version = "0.6.7"
+version = "0.6.8"
 description = "Doublepoint Touch SDK"
 license = "ISC"
 authors = [
     { name="Doublepoint", email="developer@doublepoint.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["bluetooth"]
 classifiers = [
     "Development Status :: 3 - Alpha",

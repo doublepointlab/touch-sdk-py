@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import platform
+import logging
 
 import bleak
 from bleak import BleakClient
@@ -12,6 +13,8 @@ from touch_sdk.gatt_scanner import GattScanner
 # pylint: disable=no-name-in-module
 from touch_sdk.protobuf.watch_output_pb2 import Update
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, ClientInfo
+
+logger = logging.getLogger(__file__)
 
 
 __doc__ = """Discovering Touch SDK compatible BLE devices and interfacing with them."""
@@ -36,7 +39,8 @@ class WatchConnector:
         """Creates a new instance of WatchConnector. Does not start scanning for Bluetooth
         devices. Use WatchConnector.run to enter the scanning and connection event loop.
 
-        Optional name_filter connects only to watches with that name (case insensitive)"""
+        Optional name_filter connects only to watches with that name (case insensitive)
+        """
         self._scanner = GattScanner(
             self._on_scan_result, INTERACTION_SERVICE, name_filter
         )
@@ -110,7 +114,7 @@ class WatchConnector:
             # up with _monitor_connections. Easier to just give up and try again
             # through the scanner, even though it adds a delay and a bit of
             # noise to the console.
-            print("Connecting failed, trying again")
+            logger.info("Connecting failed, trying again")
             await self._disconnect(address)
 
     async def _disconnect(self, address, resume=True):
@@ -145,7 +149,7 @@ class WatchConnector:
         self._approved_addresses.add(device.address)
 
         if (client := self._clients.get(device.address)) is not None:
-            print(f"Connection approved by {name}")
+            logger.info(f"Connection approved by {name}")
             await self._scanner.stop_scanning()
 
             disconnect_tasks = [
@@ -163,7 +167,7 @@ class WatchConnector:
                 await self._disconnect(device.address)
 
     async def _handle_disconnect_signal(self, device, name):
-        print(f"Connection declined from {name}")
+        logger.warning(f"Connection declined from {name}")
         await self._disconnect(device.address)
 
     async def _send_client_info(self, client):
@@ -178,7 +182,9 @@ class WatchConnector:
         input_update.clientInfo.CopyFrom(client_info)
 
         try:
-            await client.write_gatt_char(PROTOBUF_INPUT, input_update.SerializeToString(), True)
+            await client.write_gatt_char(
+                PROTOBUF_INPUT, input_update.SerializeToString(), True
+            )
         except bleak.exc.BleakDBusError:
             # [org.bluez.Error.Failed] Operation failed with ATT error:
             # 0x01 (Invalid Handle)

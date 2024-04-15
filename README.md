@@ -96,7 +96,15 @@ Triggered when a gesture detection model produces an output. See `examples/pinch
 ### Haptics
 The `trigger_haptics(intensity, length)` method can be used to initiate one-shot haptic effects on the watch. For example, to drive the haptics motor for 300 ms at 100% intensity on `watch`, call `watch.trigger_haptics(1.0, 300)`.
 
-## Acting as Unity Play Mode backend
+### Miscellaneous
+```python
+watch.hand # Hand.NONE, Hand.LEFT or Hand.RIGHT
+watch.battery_percentage # 0-100
+watch.touch_screen_resolution # (width, height) or None
+watch.haptics_available # True if device supports haptic feedback
+```
+
+## Acting as backend for Unity Play Mode
 
 This package provides the `stream_watch` module, which makes it possible to use touch-sdk-py as the backend for touch-sdk-unity applications in Play Mode. To use this feature, create a virtual environment in which touch-sdk-py is installed, and then set the python path of the `BluetoothWatchProvider` script in your Unity project to the virtual environment's python executable.
 

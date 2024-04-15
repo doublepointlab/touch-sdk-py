@@ -106,7 +106,7 @@ watch.haptics_available # True if device supports haptic feedback
 
 ## Acting as backend for Unity Play Mode
 
-This package provides the `stream_watch` module, which makes it possible to use touch-sdk-py as the backend for touch-sdk-unity applications in Play Mode. To use this feature, create a virtual environment in which touch-sdk-py is installed, and then set the python path of the `BluetoothWatchProvider` script in your Unity project to the virtual environment's python executable.
+This package provides the `stream_watch` module, which makes it possible to use touch-sdk-py as the backend for touch-sdk-unity (>=0.12.0) applications in Play Mode. To use this feature, create a virtual environment in which touch-sdk-py is installed, and then set the python path of the `BluetoothWatchProvider` script in your Unity project to the virtual environment's python executable.
 
 ## Unexplainable bugs
 Sometimes turning your device's Bluetooth off and on again fixes problems – this has been observed on Linux, Mac and Windows. This is unideal, but those error states are hard to reproduce and thus hard to fix.

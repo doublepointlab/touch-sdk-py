@@ -1,5 +1,5 @@
 pylint:
-  image: python:3.8
+  image: python:3.9
   script:
     - pip install pylint
     - pip install .

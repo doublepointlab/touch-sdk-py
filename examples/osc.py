@@ -3,6 +3,9 @@
 
 from touch_sdk import Watch
 from pythonosc.udp_client import SimpleUDPClient
+import logging
+# Get helpful log info
+logging.basicConfig(level=logging.INFO)
 
 ip = "127.0.0.1"
 port = 6666
@@ -18,7 +21,7 @@ class MyWatch(Watch):
         osc_client.send_message("/angular-velocity", angular_velocity)
         osc_client.send_message("/gravity", gravity)
         osc_client.send_message("/acceleration", acceleration)
-        osc_client.send_message("/orientation", orientation)        
+        osc_client.send_message("/orientation", orientation)
 
     def on_tap(self):
         osc_client.send_message("/tap", 1)

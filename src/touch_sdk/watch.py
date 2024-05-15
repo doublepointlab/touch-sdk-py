@@ -9,6 +9,7 @@ from touch_sdk.utils import unpack_chained
 from touch_sdk.watch_connector import WatchConnector
 
 # pylint: disable=no-name-in-module
+from touch_sdk.protobuf.common_pb2 import GestureType
 from touch_sdk.protobuf.watch_output_pb2 import Update, Gesture, TouchEvent
 from touch_sdk.protobuf.watch_input_pb2 import InputUpdate, HapticEvent
 
@@ -143,6 +144,13 @@ class Watch:
     # Main protobuf characteristic
 
     async def _on_protobuf(self, message):
+
+        for entry in message.probabilities:
+            if entry.label == GestureType.PINCH_HOLD or entry.label == GestureType.PINCH_TAP:
+                self.on_gesture_probability(entry.probability)
+            elif entry.label == GestureType.NONE:
+                self.on_gesture_probability(1 - entry.probability)
+
         self._proto_on_sensors(message.sensorFrames, message.unixTime)
         self._proto_on_gestures(message.gestures)
         self._proto_on_touch_events(message.touchEvents)
@@ -208,11 +216,14 @@ class Watch:
     # Gestures
 
     def _proto_on_gestures(self, gestures):
-        if any(g.type == Gesture.GestureType.TAP for g in gestures):
+        if any(g.type == GestureType.PINCH_TAP for g in gestures):
             self.on_tap()
 
+    def on_gesture_probability(self, prob: float):
+        """Called when gesture probability is received."""
+
     def on_tap(self):
-        """Called when the tap gesture happens."""
+        """Called when a pinch tap gesture happens."""
 
     # Touch screen
 

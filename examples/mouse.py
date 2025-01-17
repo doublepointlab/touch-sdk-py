@@ -1,14 +1,18 @@
 # To use this example, make sure to install extra dependencies:
 # pip install pyautogui
-from touch_sdk import Watch
+from touch_sdk import Watch, GestureType
 import pyautogui
+
 
 class MouseWatch(Watch):
 
     scale = 30
     pinch_state = False
 
-    def on_gesture_probability(self, prob):
+    def on_gesture_probability(self, probabilities):
+        prob = probabilities.get(
+            GestureType.PINCH_TAP, 1 - probabilities.get(GestureType.NONE, 1.0)
+        )
         if prob >= 0.5 and not self.pinch_state:
             self.pinch_state = True
             pyautogui.mouseDown(_pause=False)
@@ -18,11 +22,7 @@ class MouseWatch(Watch):
 
     def on_arm_direction_change(self, delta_x: float, delta_y: float):
 
-        pyautogui.moveRel(
-            self.scale * delta_x,
-            self.scale * delta_y,
-            _pause=False
-        )
+        pyautogui.moveRel(self.scale * delta_x, self.scale * delta_y, _pause=False)
 
 
 watch = MouseWatch()

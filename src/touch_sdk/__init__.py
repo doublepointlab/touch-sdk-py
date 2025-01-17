@@ -1,6 +1,6 @@
-from touch_sdk.watch import Watch
+from touch_sdk.watch import Watch, GestureType
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __doc__ = """Connects to Doublepoint Touch SDK compatible Bluetooth devices
 

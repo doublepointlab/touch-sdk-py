@@ -88,8 +88,8 @@ Called when the back button is pressed and released. Wear OS does not support se
 
 ### Probability output
 ```python
-def on_gesture_probability(self, prob):
-    print(f'probability: {prob}')
+def on_gesture_probability(self, probabilities):
+    print(f'probabilities: {probabilities}')
 ```
 Triggered when a gesture detection model produces an output. See `examples/pinch_probability.py` for a complete example.
 

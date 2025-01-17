@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "touch-sdk"
-version = "0.7.0"
+version = "0.8.0"
 description = "Doublepoint Touch SDK"
 license = "ISC"
 authors = [
@@ -25,8 +25,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Human Machine Interfaces",
 ]
 dependencies = [
-    "bleak~=0.20.1",
-    "protobuf~=3.20.0",
+    "bleak~=0.22.2",
+    "protobuf~=5.28.2",
     "asyncio-atexit~=1.0.1",
 ]
 

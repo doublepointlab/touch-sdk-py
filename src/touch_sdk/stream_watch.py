@@ -4,6 +4,7 @@ import binascii
 import sys
 import asyncio
 import asyncio_atexit
+from time import sleep
 
 from touch_sdk.uuids import PROTOBUF_OUTPUT, PROTOBUF_INPUT
 from touch_sdk.watch_connector import WatchConnector
@@ -163,6 +164,11 @@ def main():
         StreamWatch(args.name_filter, args.disable_input).start()
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        # This is so user can see error in executable created with pynsist
+        print(f"Error: {e}", file=sys.stderr)
+        sleep(2)
+        raise e
 
 
 if __name__ == "__main__":

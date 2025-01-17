@@ -57,17 +57,22 @@ class GattScanner:
             return
         self._addresses.add(device.address)
 
-        name = (
-            advertisement_data.manufacturer_data.get(0xFFFF, bytearray()).decode(
-                "utf-8"
+        try:
+            name = (
+                advertisement_data.manufacturer_data.get(0xFFFF, bytearray()).decode(
+                    "utf-8"
+                )
+                or advertisement_data.local_name
             )
-            or advertisement_data.local_name
-        )
 
-        if self.service_uuid in advertisement_data.service_uuids:
-            if self.name_filter is not None:
-                if self.name_filter.lower() not in name.lower():
-                    return
+            if self.service_uuid in advertisement_data.service_uuids:
+                if self.name_filter is not None:
+                    if self.name_filter.lower() not in name.lower():
+                        return
 
-            logger.info(f"Found {name}")
-            await self.on_scan_result(device, name)
+                logger.info(f"Found {name}")
+                await self.on_scan_result(device, name)
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            logger.debug("Failed connection to %s", device)

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "touch-sdk"
 version = "0.8.0"
 description = "Doublepoint Touch SDK"
-license = "ISC"
+license = {file = "LICENSE"}
 authors = [
     { name="Doublepoint", email="developer@doublepoint.com" },
 ]

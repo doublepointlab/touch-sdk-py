@@ -88,8 +88,8 @@ class MyWatch(Watch):
 
 # Setup the IP, client port (for sending), and server port (for receiving)
 ip = "127.0.0.1"
-client_port = 6666
-server_port = 6667
+client_port = 6663
+server_port = 6673
 
 # Create an instance of MyWatch
 watch = MyWatch(ip, client_port, server_port)

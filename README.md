@@ -7,9 +7,9 @@
 
 Connects to Doublepoint Touch SDK compatible Bluetooth devices – like [this Wear OS app](https://play.google.com/store/apps/details?id=io.port6.watchbridge).
 
-There is also a [web SDK](https://www.npmjs.com/package/touch-sdk) and a [Unity SDK](https://openupm.com/packages/io.port6.sdk/).
+There is also a [JavaScript SDK](https://www.npmjs.com/package/touch-sdk) and a [Unity SDK](https://openupm.com/packages/io.port6.sdk/).
 
-See [doublepoint.com/product](https://doublepoint.com/product) for more info.
+See [docs.doublepoint.com](https://docs.doublepoint.com/docs/touch-sdk) for more info.
 
 ## Installation
 
@@ -17,7 +17,29 @@ See [doublepoint.com/product](https://doublepoint.com/product) for more info.
 pip install touch-sdk
 ```
 
-## Example usage
+## Quick Setup (recommended)
+
+One command to set up Python 3.11, venv, and all dependencies:
+
+**macOS / Linux:**
+```sh
+bash scripts/oneshot_setup_cursor.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\oneshot_setup.ps1
+```
+
+After setup, run examples:
+```sh
+python examples/basic.py
+python examples/osc_client_server.py
+python examples/plotter.py
+```
+
+## Example Usage
+
 ```python
 from touch_sdk import Watch
 
@@ -29,34 +51,54 @@ watch = MyWatch()
 watch.start()
 ```
 
-## Usage
+## API Reference
 
-All callback functions should be methods in the class that inherits `Watch`, like in the example above.
+All callbacks are methods in a class that inherits `Watch`.
 
-An optional name string in the constructor will search only for devices with that name (case insensitive).
-
+Optional name filter (case insensitive):
 ```python
-watch = MyWatch('fvaf')
+watch = MyWatch('device-name')
 ```
 
-### Tap gesture
+### Tap Gesture
 ```python
 def on_tap(self):
     print('tap')
 ```
 
+### Gestures (Swipe, Hold, etc.)
+```python
+from touch_sdk import GestureType
+
+def on_gesture(self, gesture):
+    if gesture == GestureType.DPAD_LEFT:
+        print('swipe left')
+    elif gesture == GestureType.DPAD_RIGHT:
+        print('swipe right')
+    elif gesture == GestureType.PINCH_HOLD:
+        print('hold')
+    elif gesture == GestureType.PINCH_TAP:
+        print('tap')
+```
+
+Note: Swipe and Hold require different gesture models. Switch via watch menu or right hardware button.
+
+### Gesture Probability
+```python
+def on_gesture_probability(self, probabilities):
+    print(probabilities)  # dict of GestureType -> float (0-1)
+```
+
 ### Sensors
 ```python
 def on_sensors(self, sensors):
-    print(sensors.acceleration) # (x, y, z)
-    print(sensors.gravity) # (x, y, z)
+    print(sensors.acceleration)    # (x, y, z)
+    print(sensors.gravity)         # (x, y, z)
     print(sensors.angular_velocity) # (x, y, z)
-    print(sensors.orientation) # (x, y, z, w)
-    print(sensors.magnetic_field) # (x, y, z), or None if unavailable
-    print(sensors.magnetic_field_calibration) # (x, y, z), or None if unavailable
+    print(sensors.orientation)     # (x, y, z, w)
 ```
 
-### Touch screen
+### Touch Screen
 ```python
 def on_touch_down(self, x, y):
     print('touch down', x, y)
@@ -66,58 +108,46 @@ def on_touch_up(self, x, y):
 
 def on_touch_move(self, x, y):
     print('touch move', x, y)
-
-def on_touch_cancel(self, x, y):
-    print('touch cancel', x, y)
 ```
 
-### Rotary dial
+### Rotary Dial
 ```python
 def on_rotary(self, direction):
-    print('rotary', direction)
+    print('rotary', direction)  # +1 clockwise, -1 counter-clockwise
 ```
-Outputs +1 for clockwise and -1 for counter-clockwise.
 
-### Back button
+### Back Button
 ```python
 def on_back_button(self):
     print('back button')
 ```
 
-Called when the back button is pressed and released. Wear OS does not support separate button down and button up events for the back button.
-
-### Probability output
-```python
-def on_gesture_probability(self, probabilities):
-    print(f'probabilities: {probabilities}')
-```
-Triggered when a gesture detection model produces an output. See `examples/pinch_probability.py` for a complete example.
-
 ### Haptics
-The `trigger_haptics(intensity, length)` method can be used to initiate one-shot haptic effects on the watch. For example, to drive the haptics motor for 300 ms at 100% intensity on `watch`, call `watch.trigger_haptics(1.0, 300)`.
-
-### Miscellaneous
 ```python
-watch.hand # Hand.NONE, Hand.LEFT or Hand.RIGHT
-watch.battery_percentage # 0-100
+watch.trigger_haptics(1.0, 300)  # intensity (0-1), duration (ms)
+```
+
+### Properties
+```python
+watch.hand                    # Hand.NONE, Hand.LEFT, Hand.RIGHT
+watch.battery_percentage      # 0-100
 watch.touch_screen_resolution # (width, height) or None
-watch.haptics_available # True if device supports haptic feedback
+watch.haptics_available       # True if supported
 ```
 
-## Acting as backend for Unity Play Mode
+### Multiple OSC Instances
 
-This package provides the `stream_watch` module, which makes it possible to use touch-sdk-py as the backend for touch-sdk-unity (>=0.12.0) applications in Play Mode. To use this feature, create a virtual environment in which touch-sdk-py is installed, and then set the python path of the `BluetoothWatchProvider` script in your Unity project to the virtual environment's python executable.
+To connect multiple watches, duplicate `examples/osc_client_server.py` and change ports:
+- Watch 1: ports 6666/6667
+- Watch 2: ports 6668/6669
+- Watch 3: ports 6670/6671
 
-## Unexplainable bugs
-Sometimes turning your device's Bluetooth off and on again fixes problems – this has been observed on Linux, Mac and Windows. This is unideal, but those error states are hard to reproduce and thus hard to fix.
 
-## Pylint
-```sh
-python3 -m pylint src --rcfile=.pylintrc
-```
+## Unity Backend
 
-### Adding pylint to pre-commit
-```sh
-echo 'python3 -m pylint src --rcfile=.pylintrc -sn' > .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
-```
+The `stream_watch` module can serve as backend for touch-sdk-unity (>=0.12.0) in Play Mode. Set the python path in `BluetoothWatchProvider` to your venv's python executable.
+
+## Troubleshooting
+
+If things don't work, try turning Bluetooth off and on again. This fixes many issues on Linux, Mac, and Windows.
+

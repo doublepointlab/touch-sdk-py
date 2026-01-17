@@ -4,3 +4,4 @@ dist/
 *.pyc
 *.spec
 build/
+.history/

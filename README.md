@@ -36,10 +36,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\oneshot_setup.ps1
 ```
 
 After setup, run examples:
+
+**macOS / Linux:**
 ```sh
 python examples/basic.py
 python examples/osc_client_server.py
 python examples/plotter.py
+```
+
+**Windows:**
+```batch
+scripts\run_osc_bridge.bat
+```
+Or activate the venv manually and run Python:
+```batch
+.venv\Scripts\activate
+python examples\osc_client_server.py
 ```
 
 ## Example Usage
@@ -135,12 +147,37 @@ watch.touch_screen_resolution # (width, height) or None
 watch.haptics_available       # True if supported
 ```
 
-### Multiple OSC Instances
+### Connecting to a Specific Watch
 
-To connect multiple watches, duplicate `examples/osc_client_server.py` and change ports:
-- Watch 1: ports 6666/6667
-- Watch 2: ports 6668/6669
-- Watch 3: ports 6670/6671
+By default, the SDK connects to the first available watch. To connect to a specific watch by name:
+
+**In code:**
+```python
+watch = MyWatch('My Watch Name')  # case insensitive
+```
+
+**OSC bridge (command line):**
+```sh
+python examples/osc_client_server.py --name-filter "My Watch Name"
+```
+
+**Windows batch file:**
+```batch
+scripts\run_osc_bridge.bat --name-filter "My Watch Name"
+```
+
+The name filter matches any watch whose name contains the given string (case insensitive).
+
+**Tip:** The watch ID is displayed on the DevKit screen.
+
+### Multiple Watches
+
+To connect multiple watches simultaneously, run separate instances with different ports and name filters:
+
+```sh
+python examples/osc_client_server.py --name-filter "Watch A" --client-port 6666 --server-port 6667
+python examples/osc_client_server.py --name-filter "Watch B" --client-port 6668 --server-port 6669
+```
 
 
 ## Unity Backend
@@ -150,4 +187,15 @@ The `stream_watch` module can serve as backend for touch-sdk-unity (>=0.12.0) in
 ## Troubleshooting
 
 If things don't work, try turning Bluetooth off and on again. This fixes many issues on Linux, Mac, and Windows.
+
+### Unpairing the DevKit
+
+To unpair and reset Bluetooth on the Doublepoint DevKit:
+
+1. **Press both buttons** simultaneously to open the menu
+2. **Navigate** using the left button until you reach **BL MODE**
+3. **Select** with the right button
+4. **Select Unpair** with the right button
+
+After unpairing, the DevKit will be discoverable again for new connections.
 

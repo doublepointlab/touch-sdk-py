@@ -20,6 +20,7 @@ import contextlib
 import logging
 import random
 import signal
+import socket
 import threading
 import time
 from typing import Any, Optional, Coroutine, FrozenSet
@@ -48,8 +49,8 @@ DEFAULT_LISTEN_PORT = 6667    # Port to receive OSC messages FROM
 # Multi-tap waiting behavior
 # When True: waits for time window before emitting, to avoid spurious intermediate gestures
 # When False: emits immediately (lower latency, but fires tap before double-tap, etc.)
-ENABLE_DOUBLE_TAP = True      # If True, single tap waits to see if double-tap is coming
-ENABLE_TRIPLE_TAP = True      # If True, double tap waits to see if triple-tap is coming
+ENABLE_DOUBLE_TAP = False      # If True, single tap waits to see if double-tap is coming
+ENABLE_TRIPLE_TAP = False      # If True, double tap waits to see if triple-tap is coming
 
 # OSC addresses (what TouchDesigner sees)
 OSC_TAP = "/tap"
@@ -84,6 +85,21 @@ SUPINATION_ANGLE_THRESHOLD = 110
 # =============================================================================
 
 logger = logging.getLogger(__name__)
+
+
+class ReuseAddrOSCUDPServer(ThreadingOSCUDPServer):
+    """OSC UDP server with SO_REUSEADDR so the port can be rebound quickly.
+
+    Avoids WinError 10048 / 'address already in use' when restarting shortly
+    after a previous instance (TIME_WAIT) or when another process held the port.
+    """
+
+    def server_bind(self) -> None:
+        self.socket = socket.socket(self.address_family, self.socket_type)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, "IP_TOS"):
+            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_TOS, 0)
+        self.socket.bind(self.server_address)
 
 
 def _gesture_name(gesture: GestureType) -> str:
@@ -122,7 +138,7 @@ class OscBridgeWatch(Watch):
         self.dispatcher = Dispatcher()
         self.dispatcher.map("/vib/intensity", self._on_haptic_intensity)
         self.dispatcher.map("/vib/duration", self._on_haptic_duration)
-        self.osc_server = ThreadingOSCUDPServer(
+        self.osc_server = ReuseAddrOSCUDPServer(
             (self.osc_ip, self.osc_listen_port), self.dispatcher
         )
         self._server_thread: Optional[threading.Thread] = None
